@@ -158,6 +158,57 @@
         .h2h-stat-value { font-size: 1.5rem; font-weight: 700; }
         .h2h-vs-divider { text-align: center; }
         .h2h-vs-divider p:first-child { font-size: 2rem; font-weight: bold; color: #58a6ff; }
+        
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+                margin: 1rem auto;
+                max-width: 100%;
+            }
+            h1 {
+                font-size: 1.875rem; /* text-3xl */
+            }
+            #adminLink {
+                position: static;
+                display: block;
+                width: fit-content;
+                margin: 1rem auto 0;
+            }
+            .responsive-table thead {
+                display: none;
+            }
+            .responsive-table tr {
+                display: block;
+                margin-bottom: 1rem;
+                border: 1px solid #30363d;
+                border-radius: 0.5rem;
+                padding: 1rem;
+            }
+            .responsive-table td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                text-align: right !important;
+                border-bottom: 1px solid #30363d;
+                padding: 0.75rem 0;
+            }
+            .responsive-table td:last-child {
+                border-bottom: none;
+            }
+            .responsive-table td::before {
+                content: attr(data-label);
+                font-weight: bold;
+                text-align: left;
+                margin-right: 1rem;
+                color: #8b949e;
+            }
+            #h2hResult {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            .h2h-vs-divider { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -174,11 +225,11 @@
 
              <div class="stats-section">
                 <h2 class="text-2xl mb-4"><span class="icon">⚔️</span>Head-to-Head (All Leagues)</h2>
-                <div class="flex items-center gap-4">
+                <div class="flex flex-col sm:flex-row items-center gap-4">
                     <select id="h2hPlayer1Select" class="w-full bg-gray-900 border-gray-700 text-white rounded-md p-2"></select>
                     <span class="font-bold">vs</span>
                     <select id="h2hPlayer2Select" class="w-full bg-gray-900 border-gray-700 text-white rounded-md p-2"></select>
-                    <button id="h2hButton" class="p-2 rounded-md">Compare</button>
+                    <button id="h2hButton" class="p-2 rounded-md w-full sm:w-auto">Compare</button>
                 </div>
                 <div id="h2hResult" class="mt-4 text-center"></div>
             </div>
@@ -350,14 +401,14 @@
              if (standings.length === 0) return `<div class="standings-section"><h2 class="text-2xl"><span class="icon">🏆</span>${leagueName} Standings</h2><p>No matches played yet in this league.</p></div>`;
              return `<div class="standings-section">
                 <h2 class="text-2xl mb-4"><span class="icon">🏆</span>${leagueName} Standings</h2>
-                <table class="w-full"><thead><tr>
+                <table class="w-full responsive-table"><thead><tr>
                     <th>Rank</th><th>Player</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
                 </tr></thead><tbody>
                 ${standings.map((p, i) => `
                     <tr class="${getRankClass(i)}">
-                        <td>${i + 1}</td><td class="player-name-link" data-player-name="${p.player}">${p.player}</td><td>${p.played}</td><td>${p.wins}</td>
-                        <td>${p.draws}</td><td>${p.losses}</td><td>${p.gf}</td>
-                        <td>${p.ga}</td><td>${p.gd}</td><td class="font-bold">${p.points}</td>
+                        <td data-label="Rank">${i + 1}</td><td data-label="Player" class="player-name-link" data-player-name="${p.player}">${p.player}</td><td data-label="P">${p.played}</td><td data-label="W">${p.wins}</td>
+                        <td data-label="D">${p.draws}</td><td data-label="L">${p.losses}</td><td data-label="GF">${p.gf}</td>
+                        <td data-label="GA">${p.ga}</td><td data-label="GD">${p.gd}</td><td data-label="Pts" class="font-bold">${p.points}</td>
                     </tr>`).join('')}
                 </tbody></table></div>`;
         }
@@ -423,14 +474,14 @@
              return `<div class="flex flex-col md:flex-row gap-4">
                 <div class="stats-section flex-1">
                     <h2 class="text-2xl mb-4"><span class="icon">⚽</span>Top Goal Scorers</h2>
-                    <table><thead><tr><th>Rank</th><th>Player</th><th>Goals</th></tr></thead><tbody>
-                        ${topScorers.map((p, i) => `<tr><td>${i+1}</td><td class="player-name-link" data-player-name="${p.player}">${p.player}</td><td class="font-bold">${p.gf}</td></tr>`).join('')}
+                    <table class="w-full responsive-table"><thead><tr><th>Rank</th><th>Player</th><th>Goals</th></tr></thead><tbody>
+                        ${topScorers.map((p, i) => `<tr><td data-label="Rank">${i+1}</td><td data-label="Player" class="player-name-link" data-player-name="${p.player}">${p.player}</td><td data-label="Goals" class="font-bold">${p.gf}</td></tr>`).join('')}
                     </tbody></table>
                 </div>
                 <div class="stats-section flex-1">
                     <h2 class="text-2xl mb-4"><span class="icon">🛡️</span>Top Defenders</h2>
-                    <table><thead><tr><th>Rank</th><th>Player</th><th>Goals Against</th></tr></thead><tbody>
-                        ${topDefenders.map((p, i) => `<tr><td>${i+1}</td><td class="player-name-link" data-player-name="${p.player}">${p.player}</td><td class="font-bold">${p.ga}</td></tr>`).join('')}
+                    <table class="w-full responsive-table"><thead><tr><th>Rank</th><th>Player</th><th>Goals Against</th></tr></thead><tbody>
+                        ${topDefenders.map((p, i) => `<tr><td data-label="Rank">${i+1}</td><td data-label="Player" class="player-name-link" data-player-name="${p.player}">${p.player}</td><td data-label="Goals Against" class="font-bold">${p.ga}</td></tr>`).join('')}
                     </tbody></table>
                 </div>
             </div>`;
@@ -456,13 +507,9 @@
         }
 
         function renderMatchList() {
-            const isAdmin = userId === adminUID;
             matchList.innerHTML = [...matches].sort((a,b) => b.timestamp - a.timestamp).map(m => `
                 <div class="match-item ${m.isMOTW ? 'match-of-the-week-item' : ''}">
                     <span>${m.league}: ${m.player1Name} <b>${m.player1Goals}</b> - <b>${m.player2Goals}</b> ${m.player2Name}</span>
-                    <div class="flex items-center">
-                        ${isAdmin ? `<button class="star-btn ${m.isMOTW ? 'active' : ''}" data-id="${m.id}" title="Match of the Week">★</button>` : ''}
-                    </div>
                 </div>`).join('') || '<p>No matches in the archive.</p>';
         }
 
@@ -548,7 +595,7 @@
             const playerLink = e.target.closest('.player-name-link');
             if (playerLink) showPlayerProfile(playerLink.dataset.playerName);
         });
-
+        
         function showPlayerProfile(playerName) {
             const playerMatches = matches.filter(m => m.player1Name === playerName || m.player2Name === playerName);
             let wins = 0, losses = 0, draws = 0, gf = 0, ga = 0, biggestWin = { diff: 0, score: 'N/A' };
@@ -583,8 +630,14 @@
             playerProfileModal.style.display = 'flex';
         }
         
-        document.querySelectorAll('.cancel-button').forEach(button => { button.addEventListener('click', (e) => { e.target.closest('.modal').style.display = 'none'; }); });
-        playerProfileModal.addEventListener('click', e => { if (e.target === playerProfileModal) playerProfileModal.style.display = 'none'; });
+        document.body.addEventListener('click', (e) => {
+            if (e.target.matches('.cancel-button')) {
+                e.target.closest('.modal').style.display = 'none';
+            }
+            if (e.target === playerProfileModal) {
+                 playerProfileModal.style.display = 'none';
+            }
+        });
         
         document.addEventListener('DOMContentLoaded', startApp);
     </script>
