@@ -203,9 +203,8 @@
           measurementId: "G-QJCY28B9HM"
         };
         
-        const adminUID = "ujMJ9cUFxxguzNmezN6iF2TQNN52";
+        const adminUID = "PASTE_YOUR_ADMIN_USER_ID_HERE";
 
-        // DOM elements
         const loginSection = document.getElementById('loginSection');
         const loginForm = document.getElementById('loginForm');
         const loginError = document.getElementById('loginError');
@@ -456,9 +455,6 @@
             fixtureOptionsModal.style.display = 'none';
             alert('Fixtures generated successfully!');
         }
-
-        document.getElementById('generateSingleLeg').addEventListener('click', () => generateFixtures(1));
-        document.getElementById('generateDoubleLeg').addEventListener('click', () => generateFixtures(2));
 
         function openEnterResultModal(matchId) {
             const match = matches.find(m => m.id === matchId);
