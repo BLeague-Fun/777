@@ -7,8 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
-        
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
             background-color: #0d1117;
@@ -186,13 +185,17 @@
         }
         .star-btn { color: #6e7681; cursor: pointer; }
         .star-btn.active { color: #ffd700; }
+        #motwContainer {
+            border: 1px solid #ffd700;
+            background: linear-gradient(145deg, rgba(255, 215, 0, 0.05), rgba(255, 215, 0, 0.15));
+        }
     </style>
 </head>
 <body>
 
-    <div class="container relative">
-        <h1 class="text-4xl font-extrabold">FC 2025 League Tracker</h1>
-        <p class="text-center text-sm mt-2"><span id="userIdDisplay">Loading...</span></p>
+    <div class="container">
+        <h1 class="text-4xl">FC 2025 League Tracker</h1>
+        <p class="text-center text-sm mt-2 text-gray-500">Your User ID: <span id="userIdDisplay">Loading...</span></p>
 
         <div class="tab-buttons">
             <button id="matchesTabButton" class="tab-button active">Matches</button>
@@ -200,6 +203,7 @@
         </div>
         
         <div id="matchesTab" class="tab-content">
+            <div id="motwContainer" class="stats-section hidden"></div>
             <div id="leagueTabsContainer" class="league-tabs-container"></div>
             <div id="leagueContentContainer"></div>
 
@@ -241,7 +245,6 @@
                 </form>
                 <div id="playerList" class="mt-4"></div>
             </div>
-
             <div class="form-section">
                 <h2 class="text-2xl mb-4">Add a New League</h2>
                 <form id="addLeagueForm" class="flex flex-col gap-4">
@@ -287,6 +290,7 @@
         const adminUID = "7ss4Z12tDkgCQB1pevK6gKR1WpI3";
 
         // DOM element references
+        const motwContainer = document.getElementById('motwContainer');
         const matchList = document.getElementById('matchList');
         const confirmationModal = document.getElementById('confirmationModal');
         const playerProfileModal = document.getElementById('playerProfileModal');
@@ -316,6 +320,7 @@
         let itemToDelete = null;
         let players = [], leagues = [], matches = [];
         let chartInstances = {};
+        const chartColors = ['#58a6ff', '#238636', '#e54848', '#a371f7', '#f25757', '#2ea043'];
 
         async function startApp() {
             try {
@@ -326,7 +331,7 @@
                 auth.onAuthStateChanged(user => {
                     if (user) {
                         userId = user.uid;
-                        userIdDisplay.textContent = `User ID: ${userId}`;
+                        userIdDisplay.textContent = userId;
                         adminTabButton.classList.toggle('hidden', userId !== adminUID);
                         setupListeners();
                     } else {
@@ -355,15 +360,17 @@
                 matches = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderMatchList();
                 renderAllLeagueData();
+                renderMOTW();
             });
         }
 
         function renderAllLeagueData() {
             if (!leagues.length) return;
-
             const activeLeague = document.querySelector('.league-tab-button.active')?.dataset.league || leagues[0];
             leagueTabsContainer.innerHTML = '';
             leagueContentContainer.innerHTML = '';
+            Object.values(chartInstances).forEach(chart => chart.destroy());
+            chartInstances = {};
 
             leagues.forEach(league => {
                 const tabButton = document.createElement('button');
@@ -379,7 +386,7 @@
                 contentDiv.className = 'league-content';
                 if (league !== activeLeague) contentDiv.classList.add('hidden');
                 
-                const leagueMatches = matches.filter(m => m.league === league);
+                const leagueMatches = matches.filter(m => m.league === league).sort((a,b) => a.timestamp - b.timestamp);
                 const leaguePlayers = [...new Set(leagueMatches.flatMap(m => [m.player1Name, m.player2Name]))];
                 
                 const standings = calculateLeagueStats(leagueMatches, leaguePlayers);
@@ -388,7 +395,14 @@
                 const { topScorers, topDefenders } = calculateTopPlayers(leagueMatches, leaguePlayers);
                 contentDiv.innerHTML += generateTopPlayersHTML(topScorers, topDefenders);
 
+                const chartData = calculatePlayerProgress(leagueMatches, leaguePlayers);
+                contentDiv.innerHTML += `<div class="stats-section"><h2 class="text-2xl mb-4">Points Progression</h2><canvas id="chart-${league}"></canvas></div>`;
+
                 leagueContentContainer.appendChild(contentDiv);
+                
+                if (chartData.datasets.length > 0) {
+                    renderChart(league, chartData);
+                }
             });
              updateH2HDropdowns();
         }
@@ -443,6 +457,59 @@
                     </tr>`).join('')}
                 </tbody></table></div>`;
         }
+
+        function calculatePlayerProgress(leagueMatches, leaguePlayers) {
+            const progressData = { labels: [], datasets: [] };
+            let maxGames = 0;
+
+            leaguePlayers.forEach((player, index) => {
+                const playerMatches = leagueMatches.filter(m => m.player1Name === player || m.player2Name === player);
+                if (playerMatches.length === 0) return;
+
+                let currentPoints = 0;
+                const pointsHistory = [0]; // Start at 0 points before game 1
+
+                playerMatches.forEach(m => {
+                    const isPlayer1 = m.player1Name === player;
+                    const pGoals = isPlayer1 ? m.player1Goals : m.player2Goals;
+                    const oGoals = isPlayer1 ? m.player2Goals : m.player1Goals;
+                    if (pGoals > oGoals) currentPoints += 3;
+                    else if (pGoals === oGoals) currentPoints += 1;
+                    pointsHistory.push(currentPoints);
+                });
+
+                progressData.datasets.push({
+                    label: player,
+                    data: pointsHistory,
+                    borderColor: chartColors[index % chartColors.length],
+                    backgroundColor: chartColors[index % chartColors.length] + '33', // semi-transparent fill
+                    fill: false,
+                    tension: 0.1
+                });
+                
+                if (playerMatches.length > maxGames) maxGames = playerMatches.length;
+            });
+
+            progressData.labels = Array.from({ length: maxGames + 1 }, (_, i) => `Game ${i}`);
+            return progressData;
+        }
+
+        function renderChart(leagueName, chartData) {
+            const ctx = document.getElementById(`chart-${leagueName}`)?.getContext('2d');
+            if(!ctx) return;
+            
+            chartInstances[leagueName] = new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    scales: { 
+                        y: { beginAtZero: true, ticks: { color: '#c9d1d9' }, grid: { color: '#30363d'} }, 
+                        x: { ticks: { color: '#c9d1d9' }, grid: { color: '#30363d'} } 
+                    },
+                    plugins: { legend: { labels: { color: '#c9d1d9' } } }
+                }
+            });
+        }
         
         function calculateTopPlayers(leagueMatches, leaguePlayers) {
             const stats = {};
@@ -476,6 +543,25 @@
                     </tbody></table>
                 </div>
             </div>`;
+        }
+
+        function renderMOTW() {
+            const motw = matches.find(m => m.isMOTW);
+            if(motw) {
+                motwContainer.innerHTML = `
+                    <h2 class="text-2xl mb-2 text-center text-yellow-400">★ Match of the Week ★</h2>
+                    <div class="text-center">
+                        <p class="text-lg">${motw.league}</p>
+                        <p class="text-3xl font-bold my-2">
+                            <span class="player-name-link" data-player-name="${motw.player1Name}">${motw.player1Name}</span>
+                            <span class="mx-4">${motw.player1Goals} - ${motw.player2Goals}</span>
+                            <span class="player-name-link" data-player-name="${motw.player2Name}">${motw.player2Name}</span>
+                        </p>
+                    </div>`;
+                motwContainer.classList.remove('hidden');
+            } else {
+                motwContainer.classList.add('hidden');
+            }
         }
 
         function renderMatchList() {
@@ -523,7 +609,8 @@
             const p1 = h2hPlayer1Select.value;
             const p2 = h2hPlayer2Select.value;
             if (!p1 || !p2 || p1 === p2) {
-                h2hResult.innerHTML = 'Please select two different players.'; return;
+                h2hResult.innerHTML = 'Please select two different players.';
+                return;
             }
             const h2hMatches = matches.filter(m => (m.player1Name === p1 && m.player2Name === p2) || (m.player1Name === p2 && m.player2Name === p1));
             let p1Wins = 0, p2Wins = 0, draws = 0;
@@ -537,18 +624,26 @@
 
         document.addEventListener('click', e => {
             const playerLink = e.target.closest('.player-name-link');
-            if (playerLink) showPlayerProfile(playerLink.dataset.playerName);
+            if (playerLink) {
+                const playerName = playerLink.dataset.playerName;
+                showPlayerProfile(playerName);
+            }
 
             const starButton = e.target.closest('.star-btn');
-            if(starButton) toggleMOTW(starButton.dataset.id);
+            if(starButton) {
+                toggleMOTW(starButton.dataset.id);
+            }
         });
 
         async function toggleMOTW(matchId) {
             const batch = writeBatch(db);
             matches.forEach(match => {
                 const docRef = doc(db, 'matches', match.id);
-                if (match.id === matchId) batch.update(docRef, { isMOTW: !match.isMOTW }); 
-                else if (match.isMOTW) batch.update(docRef, { isMOTW: false });
+                if (match.id === matchId) {
+                    batch.update(docRef, { isMOTW: !match.isMOTW }); 
+                } else if (match.isMOTW) {
+                    batch.update(docRef, { isMOTW: false });
+                }
             });
             await batch.commit();
         }
@@ -556,44 +651,107 @@
         function showPlayerProfile(playerName) {
             const playerMatches = matches.filter(m => m.player1Name === playerName || m.player2Name === playerName);
             let wins = 0, losses = 0, draws = 0, gf = 0, ga = 0, biggestWin = { diff: 0, score: 'N/A' };
+
             playerMatches.forEach(m => {
                 const isPlayer1 = m.player1Name === playerName;
-                const pGoals = isPlayer1 ? m.player1Goals : m.player2Goals;
-                const oGoals = isPlayer1 ? m.player2Goals : m.player1Goals;
-                gf += pGoals; ga += oGoals;
-                if (pGoals > oGoals) {
+                const playerGoals = isPlayer1 ? m.player1Goals : m.player2Goals;
+                const oppGoals = isPlayer1 ? m.player2Goals : m.player1Goals;
+                gf += playerGoals;
+                ga += oppGoals;
+                if (playerGoals > oppGoals) {
                     wins++;
-                    if (pGoals - oGoals > biggestWin.diff) biggestWin = { diff: pGoals - oGoals, score: `${pGoals} - ${oGoals}` };
+                    if (playerGoals - oppGoals > biggestWin.diff) {
+                        biggestWin = { diff: playerGoals - oppGoals, score: `${playerGoals} - ${oppGoals}` };
+                    }
                 }
-                else if (oGoals > playerGoals) losses++;
+                else if (oppGoals > playerGoals) losses++;
                 else draws++;
             });
+
             const played = playerMatches.length;
             const winRate = played ? ((wins / played) * 100).toFixed(1) : 0;
             const gpg = played ? (gf / played).toFixed(2) : 0;
             
             playerProfileContent.innerHTML = `
                 <div class="text-left">
-                    <div class="flex justify-between items-center"><h2 class="text-3xl mb-4">${playerName}</h2><button id="closeProfileBtn" class="bg-gray-700 hover:bg-gray-600">Close</button></div>
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-3xl mb-4">${playerName}</h2>
+                        <button id="closeProfileBtn" class="bg-gray-700 hover:bg-gray-600">Close</button>
+                    </div>
                     <div class="grid grid-cols-2 gap-4 mb-4">
-                        <p><strong>Win Rate:</strong> ${winRate}%</p><p><strong>Played:</strong> ${played}</p>
-                        <p><strong>Record (W-D-L):</strong> ${wins}-${draws}-${losses}</p><p><strong>Goals per Game:</strong> ${gpg}</p>
-                        <p><strong>Goals For:</strong> ${gf}</p><p><strong>Goals Against:</strong> ${ga}</p>
+                        <p><strong>Win Rate:</strong> ${winRate}%</p>
+                        <p><strong>Played:</strong> ${played}</p>
+                        <p><strong>Record (W-D-L):</strong> ${wins}-${draws}-${losses}</p>
+                        <p><strong>Goals per Game:</strong> ${gpg}</p>
+                        <p><strong>Goals For:</strong> ${gf}</p>
+                        <p><strong>Goals Against:</strong> ${ga}</p>
                         <p><strong>Biggest Win:</strong> ${biggestWin.score}</p>
                     </div>
                     <h3 class="text-xl mb-2">Match History</h3>
-                    <div class="max-h-60 overflow-y-auto">${playerMatches.map(m => `<div class="match-item"><span>${m.league}: ${m.player1Name} <b>${m.player1Goals}</b> - <b>${m.player2Goals}</b> ${m.player2Name}</span></div>`).join('') || '<p>No matches played.</p>'}</div>
+                    <div class="max-h-60 overflow-y-auto">
+                        ${playerMatches.map(m => `
+                            <div class="match-item">
+                                <span>${m.league}: ${m.player1Name} <b>${m.player1Goals}</b> - <b>${m.player2Goals}</b> ${m.player2Name}</span>
+                            </div>`).join('') || '<p>No matches played.</p>'}
+                    </div>
                 </div>`;
             playerProfileModal.style.display = 'flex';
             document.getElementById('closeProfileBtn').onclick = () => playerProfileModal.style.display = 'none';
         }
 
-        playerProfileModal.addEventListener('click', e => { if (e.target === playerProfileModal) playerProfileModal.style.display = 'none'; });
-        addPlayerForm.addEventListener('submit', async e => { e.preventDefault(); const pName = document.getElementById('playerNameInput').value.trim(); if (pName && !players.includes(pName)) { await addDoc(collection(db, 'players'), { name: pName, owner: userId }); addPlayerForm.reset(); } });
-        addLeagueForm.addEventListener('submit', async e => { e.preventDefault(); const lName = document.getElementById('leagueNameInput').value.trim(); if (lName && !leagues.includes(lName)) { await addDoc(collection(db, 'leagues'), { name: lName, owner: userId }); addLeagueForm.reset(); } });
-        addMatchForm.addEventListener('submit', async e => { e.preventDefault(); const l = leagueSelect.value, p1 = player1Select.value, g1 = parseInt(document.getElementById('player1Goals').value), p2 = player2Select.value, g2 = parseInt(document.getElementById('player2Goals').value); if (l && p1 && p2 && !isNaN(g1) && !isNaN(g2) && p1 !== p2) { await addDoc(collection(db, 'matches'), { league:l, player1Name:p1, player1Goals:g1, player2Name:p2, player2Goals:g2, timestamp: Date.now(), isMOTW: false }); addMatchForm.reset(); } });
-        document.addEventListener('click', e => { const btn = e.target.closest('.delete-item-btn'); if (btn) { itemToDelete = { id: btn.dataset.id, type: btn.dataset.type, name: btn.dataset.name }; modalText.textContent = `Delete this ${itemToDelete.type}?`; confirmationModal.style.display = 'flex'; } });
-        confirmDeleteButton.addEventListener('click', async () => { if (!itemToDelete) return; if (itemToDelete.type === 'match') { await deleteDoc(doc(db, 'matches', itemToDelete.id)); } else { const q = query(collection(db, `${itemToDelete.type}s`), where("name", "==", itemToDelete.name)); const snap = await getDocs(q); snap.forEach(d => deleteDoc(d.ref)); } confirmationModal.style.display = 'none'; });
+        playerProfileModal.addEventListener('click', e => {
+            if (e.target === playerProfileModal) playerProfileModal.style.display = 'none';
+        });
+
+        addPlayerForm.addEventListener('submit', async e => {
+            e.preventDefault();
+            const playerName = document.getElementById('playerNameInput').value.trim();
+            if (playerName && !players.includes(playerName)) {
+                await addDoc(collection(db, 'players'), { name: playerName, owner: userId });
+                addPlayerForm.reset();
+            }
+        });
+
+        addLeagueForm.addEventListener('submit', async e => {
+            e.preventDefault();
+            const leagueName = document.getElementById('leagueNameInput').value.trim();
+            if (leagueName && !leagues.includes(leagueName)) {
+                await addDoc(collection(db, 'leagues'), { name: leagueName, owner: userId });
+                addLeagueForm.reset();
+            }
+        });
+
+        addMatchForm.addEventListener('submit', async e => {
+            e.preventDefault();
+            const league = leagueSelect.value, p1 = player1Select.value, g1 = parseInt(document.getElementById('player1Goals').value),
+                  p2 = player2Select.value, g2 = parseInt(document.getElementById('player2Goals').value);
+            if (league && p1 && p2 && !isNaN(g1) && !isNaN(g2) && p1 !== p2) {
+                await addDoc(collection(db, 'matches'), { league, player1Name: p1, player1Goals: g1, player2Name: p2, player2Goals: g2, timestamp: Date.now(), isMOTW: false });
+                addMatchForm.reset();
+            }
+        });
+
+        document.addEventListener('click', e => {
+            const button = e.target.closest('.delete-item-btn');
+            if (button) {
+                itemToDelete = { id: button.dataset.id, type: button.dataset.type, name: button.dataset.name };
+                modalText.textContent = `Are you sure you want to delete this ${itemToDelete.type}?`;
+                confirmationModal.style.display = 'flex';
+            }
+        });
+
+        confirmDeleteButton.addEventListener('click', async () => {
+            if (!itemToDelete) return;
+            if (itemToDelete.type === 'match') {
+                await deleteDoc(doc(db, 'matches', itemToDelete.id));
+            } else {
+                const q = query(collection(db, `${itemToDelete.type}s`), where("name", "==", itemToDelete.name));
+                const snapshot = await getDocs(q);
+                snapshot.forEach(d => deleteDoc(d.ref));
+            }
+            confirmationModal.style.display = 'none';
+        });
+
         cancelDeleteButton.addEventListener('click', () => confirmationModal.style.display = 'none');
         matchesTabButton.addEventListener('click', () => showTab('matches'));
         adminTabButton.addEventListener('click', () => showTab('admin'));
@@ -601,7 +759,4 @@
     </script>
 </body>
 </html>
-" because something is broken in the UI.
-
-i also want to remove the admin tab and have all admin controls in a pop up, like a log in to view the admin controls
 
