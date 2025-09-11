@@ -48,13 +48,39 @@
             font-size: 2rem;
             margin-right: 1rem;
         }
+        .player-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .player-avatar {
+            width: 128px;
+            height: 128px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #fff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+        .match-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #dee2e6;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1 id="playerName" class="text-4xl font-extrabold text-center">Loading...</h1>
-        <p class="text-center mt-2"><a href="index.html" class="text-green-500 hover:underline">← Back to Main Page</a></p>
+        <div id="playerHeader" class="player-header">
+             <img id="playerAvatar" src="https://placehold.co/128x128/e9ecef/495057?text=?" alt="Player Avatar" class="player-avatar">
+            <h1 id="playerName" class="text-4xl font-extrabold text-center">Loading...</h1>
+            <p id="playerEmail" class="text-gray-500"></p>
+        </div>
+        <p class="text-center mt-4"><a href="index.html" class="text-green-500 hover:underline">← Back to Main Page</a></p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
             <div class="stat-card">
@@ -88,6 +114,8 @@
         };
         
         const playerNameEl = document.getElementById('playerName');
+        const playerEmailEl = document.getElementById('playerEmail');
+        const playerAvatarEl = document.getElementById('playerAvatar');
         const careerStatsEl = document.getElementById('careerStats');
         const trophyCabinetEl = document.getElementById('trophyCabinet');
         const matchHistoryEl = document.getElementById('matchHistory');
@@ -107,16 +135,23 @@
                 const db = getFirestore(app);
 
                 // Fetch all necessary data
+                const playersSnapshot = await getDocs(query(collection(db, 'players'), where('name', '==', playerName)));
                 const matchesSnapshot = await getDocs(query(collection(db, 'matches'), where('status', '==', 'completed')));
                 const honorsSnapshot = await getDocs(query(collection(db, 'honors'), where('playerName', '==', playerName)));
                 const clubAssignmentsSnapshot = await getDocs(collection(db, 'clubAssignments'));
 
                 const matches = matchesSnapshot.docs.map(doc => doc.data());
                 const honors = honorsSnapshot.docs.map(doc => doc.data());
+                
+                let playerData = {};
+                if(!playersSnapshot.empty) {
+                    playerData = playersSnapshot.docs[0].data();
+                }
+
                 const clubAssignments = {};
                 clubAssignmentsSnapshot.forEach(doc => { clubAssignments[doc.id] = doc.data() });
 
-                calculateAndRenderProfile(playerName, matches, honors, clubAssignments);
+                calculateAndRenderProfile(playerData, matches, honors, clubAssignments);
 
             } catch (error) {
                 console.error("Error loading profile:", error);
@@ -124,7 +159,13 @@
             }
         }
 
-        function calculateAndRenderProfile(playerName, allMatches, honors, clubAssignments) {
+        function calculateAndRenderProfile(playerData, allMatches, honors, clubAssignments) {
+            const playerName = playerData.name;
+            playerEmailEl.textContent = playerData.email || '';
+            if (playerData.avatarUrl) {
+                playerAvatarEl.src = playerData.avatarUrl;
+            }
+
             const playerMatches = allMatches.filter(m => m.player1Name === playerName || m.player2Name === playerName);
             
             let wins = 0, losses = 0, draws = 0, gf = 0, ga = 0, biggestWin = { diff: 0, score: 'N/A' };
@@ -159,24 +200,16 @@
                 'Best Defender': '🛡️'
             };
 
-            trophyCabinetEl.innerHTML = honors.sort((a,b) => b.timestamp - a.timestamp).map(honor => `
+            trophyCabinetEl.innerHTML = honors.sort((a,b) => b.timestamp - a.timestamp).map(honor => {
+                const date = honor.leagueDate ? new Date(honor.leagueDate).toLocaleDateString() : new Date(honor.timestamp).toLocaleDateString();
+                return `
                 <div class="trophy">
                     <span class="trophy-icon">${awardIcons[honor.award] || '🏆'}</span>
                     <div>
                         <p class="font-bold">${honor.award}</p>
-                        <p class="text-sm text-gray-500">${honor.leagueName}</p>
+                        <p class="text-sm text-gray-500">${honor.leagueName} (${date})</p>
                     </div>
-                </div>
-            `).join('') || '<p>No honors earned yet.</p>';
+                </div>`
+            }).join('') || '<p>No honors earned yet.</p>';
             
-            matchHistoryEl.innerHTML = playerMatches.sort((a,b) => b.timestamp - a.timestamp).map(m => {
-                 const p1Club = clubAssignments[m.league]?.[m.player1Name] || '';
-                 const p2Club = clubAssignments[m.league]?.[m.player2Name] || '';
-                 return `<div class="flex justify-between items-center py-2 border-b border-gray-200"><span>${m.league}: ${m.player1Name} ${p1Club ? `(${p1Club})` : ''} <b>${m.player1Goals}</b> - <b>${m.player2Goals}</b> ${m.player2Name} ${p2Club ? `(${p2Club})` : ''}</span></div>`
-             }).join('') || '<p>No matches played.</p>';
-        }
-
-        document.addEventListener('DOMContentLoaded', startApp);
-    </script>
-</body>
-</html>
+            matchHistoryEl.innerHTML = playerMatches.sort((a,b) => b.timestamp
