@@ -9,58 +9,214 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
         
-        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #333; }
-        .container { max-width: 90%; margin: 2rem auto; padding: 2rem; background-color: rgba(255, 255, 255, 0.85); border-radius: 1rem; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1); }
-        h1, h2 { color: #00b894; text-align: center; font-weight: 700; }
-        .standings-section, .archive-section, .stats-section { background-color: rgba(255, 255, 255, 0.9); padding: 1.5rem; border-radius: 0.75rem; margin-top: 1.5rem; border: 1px solid #e9ecef; }
-        .standings-section h2, .archive-section h2, .stats-section h2 { margin-top: 0; color: #00b894; text-align: left; display: flex; align-items: center; }
-        h2 .icon { margin-right: 0.75rem; font-size: 1.25rem; }
-        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e9ecef; white-space: nowrap; }
-        th { background-color: #f8f9fa; font-weight: 500; }
-        tr:hover { background-color: #f8f9fa; }
-        .league-tab-button { padding: 0.75rem 1.5rem; background-color: #e9ecef; border: 1px solid #dee2e6; border-radius: 0.5rem 0.5rem 0 0; color: #495057; cursor: pointer; transition: background-color 0.2s; }
-        .league-tab-button.active { background-color: #fff; border-bottom-color: #fff; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            max-width: 90%;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: rgba(255, 255, 255, 0.85);
+            border-radius: 1rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #00b894;
+            text-align: center;
+            font-weight: 700;
+        }
+        .standings-section, .archive-section, .stats-section {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-top: 1.5rem;
+            border: 1px solid #e9ecef;
+        }
+        .standings-section h2, .archive-section h2, .stats-section h2 {
+            margin-top: 0;
+            color: #00b894;
+            text-align: left;
+            display: flex;
+            align-items: center;
+        }
+        h2 .icon {
+            margin-right: 0.75rem;
+            font-size: 1.25rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+            white-space: nowrap;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: 500;
+        }
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        .league-tab-button {
+            padding: 0.75rem 1.5rem;
+            background-color: #e9ecef;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem 0.5rem 0 0;
+            color: #495057;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .league-tab-button.active {
+            background-color: #fff;
+            border-bottom-color: #fff;
+        }
         .hidden { display: none; }
-        .league-tabs-container { display: flex; flex-wrap: wrap; border-bottom: 1px solid #dee2e6; margin-top: 1.5rem; }
+        .league-tabs-container {
+            display: flex;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #dee2e6;
+            margin-top: 1.5rem;
+        }
         .rank-gold { background-color: rgba(255, 215, 0, 0.15); }
         .rank-silver { background-color: rgba(192, 192, 192, 0.15); }
         .rank-bronze { background-color: rgba(205, 127, 50, 0.15); }
-        a.player-name-link { text-decoration: none; color: #00b894; font-weight: 500; transition: color 0.2s; }
-        a.player-name-link:hover { text-decoration: underline; color: #00a884; }
-        #adminLink, #statsLink { position: absolute; top: 2.5rem; background-color: #00b894; color: white; }
-        #adminLink:hover, #statsLink:hover { background-color: #00a884; }
+        .player-name-link {
+            text-decoration: none;
+            color: #00b894;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .player-name-link:hover {
+            text-decoration: underline;
+            color: #00a884;
+        }
+        .match-of-the-week-item {
+            background-color: rgba(255, 215, 0, 0.1);
+            border-left: 3px solid #ffd700;
+        }
+        #motwContainer {
+            border: 1px solid #00b894;
+            background: linear-gradient(145deg, rgba(0, 184, 148, 0.05), rgba(0, 184, 148, 0.15));
+        }
+        #motwContainer h2 { color: #00b894; }
+        #adminLink, #statsLink {
+            position: absolute;
+            top: 2.5rem;
+            background-color: #00b894;
+            color: white;
+        }
+         #adminLink:hover, #statsLink:hover {
+            background-color: #00a884;
+         }
         #adminLink { right: 2.5rem; }
         #statsLink { right: 10.5rem; }
-        .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        #h2hButton {
+            background-image: linear-gradient(to right, #00a884, #00b894);
+            border: none;
+            transition: all 0.3s ease;
+            color: white;
+        }
+        #h2hButton:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+        }
+        #h2hResult {
+            border-top: 1px solid #dee2e6;
+            padding-top: 1.5rem;
+            margin-top: 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: start;
+            gap: 1rem;
+        }
+        .h2h-player-stats { text-align: center; }
+        .h2h-player-name { font-size: 1.25rem; font-weight: bold; color: #00b894; }
+        .h2h-stat-label { font-size: 0.875rem; color: #6c757d; margin-top: 0.5rem; }
+        .h2h-stat-value { font-size: 1.5rem; font-weight: 700; color: #333 }
+        .h2h-vs-divider { text-align: center; }
+        .h2h-vs-divider p:first-child { font-size: 2rem; font-weight: bold; color: #00b894; }
+        
+        .table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
         .table-container::-webkit-scrollbar { height: 8px; }
         .table-container::-webkit-scrollbar-track { background: #e9ecef; border-radius: 10px; }
         .table-container::-webkit-scrollbar-thumb { background: #00b894; border-radius: 10px; }
-        .league-content { animation: crossFade 0.4s ease-in-out; }
-        .form-guide-icon { width: 1rem; height: 1rem; border-radius: 50%; display: inline-block; margin-right: 0.25rem; }
-        .win { background-color: #28a745; }
-        .draw { background-color: #ffc107; }
-        .loss { background-color: #dc3545; }
         
-        @keyframes crossFade { from { opacity: 0; } to { opacity: 1; } }
+        .league-content {
+            animation: crossFade 0.4s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes crossFade {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
         @media (max-width: 768px) {
-            .container { padding: 1rem; margin: 1rem auto; max-width: 100%; }
-            h1 { font-size: 1.875rem; }
-            #adminLink, #statsLink { position: static; display: block; width: fit-content; margin: 0.5rem auto; }
+            .container {
+                padding: 1rem;
+                margin: 1rem auto;
+                max-width: 100%;
+            }
+            h1 {
+                font-size: 1.875rem; /* text-3xl */
+            }
+            #adminLink, #statsLink {
+                position: static;
+                display: block;
+                width: fit-content;
+                margin: 0.5rem auto;
+            }
+            #h2hResult {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            .h2h-vs-divider { display: none; }
         }
     </style>
 </head>
 <body>
 
     <div class="container relative">
-        <a id="statsLink" href="stats.html" class="p-2 rounded-lg text-white no-underline">Hall of Fame</a>
+        <a id="statsLink" href="stats.html" class="p-2 rounded-lg text-white no-underline">Overall Stats</a>
         <a id="adminLink" href="admin.html" class="hidden p-2 rounded-lg text-white no-underline">Admin Panel</a>
         <h1 class="text-4xl font-extrabold">FC 2025 League Tracker</h1>
         <p class="text-center text-sm mt-2"><span id="userIdDisplay">Loading...</span></p>
 
         <div id="mainContent">
+            <div id="motwContainer" class="stats-section hidden"></div>
             <div id="leagueTabsContainer" class="league-tabs-container"></div>
             <div id="leagueContentContainer"></div>
+
+             <div class="stats-section">
+                <h2 class="text-2xl mb-4"><span class="icon">⚔️</span>Head-to-Head (All Leagues)</h2>
+                <div class="flex flex-col sm:flex-row items-center gap-4">
+                    <select id="h2hPlayer1Select" class="w-full rounded-md p-2"></select>
+                    <span class="font-bold">vs</span>
+                    <select id="h2hPlayer2Select" class="w-full rounded-md p-2"></select>
+                    <button id="h2hButton" class="p-2 rounded-md w-full sm:w-auto">Compare</button>
+                </div>
+                <div id="h2hResult" class="mt-4 text-center"></div>
+            </div>
+
+            <div class="archive-section">
+                <h2 class="text-2xl mb-4"><span class="icon">📜</span>Match Archive</h2>
+                <div id="matchList"></div>
+            </div>
         </div>
     </div>
     
@@ -82,13 +238,21 @@
         const adminUID = "ujMJ9cUFxxguzNmezN6iF2TQNN52";
 
         const adminLink = document.getElementById('adminLink');
+        const motwContainer = document.getElementById('motwContainer');
+        const matchList = document.getElementById('matchList');
+        const h2hPlayer1Select = document.getElementById('h2hPlayer1Select');
+        const h2hPlayer2Select = document.getElementById('h2hPlayer2Select');
+        const h2hButton = document.getElementById('h2hButton');
+        const h2hResult = document.getElementById('h2hResult');
         const leagueTabsContainer = document.getElementById('leagueTabsContainer');
         const leagueContentContainer = document.getElementById('leagueContentContainer');
         const userIdDisplay = document.getElementById('userIdDisplay');
         
         let db, auth, userId;
-        let players = [], leagues = [], matches = [], clubAssignments = {}, clubs = [];
-        
+        let players = [], leagues = [], matches = [], clubAssignments = {};
+        let chartInstances = {};
+        const chartColors = ['#00b894', '#20c997', '#6c757d', '#17a2b8', '#fd7e14', '#6610f2'];
+
         async function startApp() {
             try {
                 const app = initializeApp(firebaseConfig);
@@ -123,13 +287,11 @@
             });
             onSnapshot(collection(db, 'matches'), snapshot => {
                 matches = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderMatchList();
                 renderAllLeagueData();
+                renderMOTW();
             });
-             onSnapshot(collection(db, 'clubs'), snapshot => {
-                clubs = snapshot.docs.map(doc => doc.data());
-                renderAllLeagueData();
-            });
-             onSnapshot(collection(db, 'clubAssignments'), snapshot => {
+            onSnapshot(collection(db, 'clubAssignments'), snapshot => {
                 clubAssignments = {};
                 snapshot.forEach(doc => {
                     clubAssignments[doc.id] = doc.data();
@@ -140,11 +302,13 @@
 
         function renderAllLeagueData() {
             if (!leagues.length) return;
-            const leagueNames = leagues.filter(l => l.status !== 'ended').map(l => l.name);
+            const leagueNames = leagues.map(l => l.name);
             const activeLeague = document.querySelector('.league-tab-button.active')?.dataset.league || (leagueNames.length > 0 ? leagueNames[0] : null);
 
             leagueTabsContainer.innerHTML = '';
             leagueContentContainer.innerHTML = '';
+            Object.values(chartInstances).forEach(chart => chart.destroy());
+            chartInstances = {};
 
             leagueNames.forEach(league => {
                 const tabButton = document.createElement('button');
@@ -164,10 +328,21 @@
                 const leaguePlayers = [...new Set(completedMatches.flatMap(m => [m.player1Name, m.player2Name]))];
                 
                 const standings = calculateLeagueStats(completedMatches, leaguePlayers);
-                contentDiv.innerHTML += generateStandingsHTML(league, standings, completedMatches);
+                contentDiv.innerHTML += generateStandingsHTML(league, standings);
                 
+                const { topScorers, topDefenders } = calculateTopPlayers(completedMatches, leaguePlayers);
+                contentDiv.innerHTML += generateTopPlayersHTML(topScorers, topDefenders);
+                
+                const chartData = calculatePlayerProgress(completedMatches, leaguePlayers);
+                contentDiv.innerHTML += `<div class="stats-section"><h2 class="text-2xl mb-4"><span class="icon">📈</span>Points Progression</h2><canvas id="chart-${league}"></canvas></div>`;
+
                 leagueContentContainer.appendChild(contentDiv);
+                
+                if (chartData.datasets.length > 0) {
+                    renderChart(league, chartData);
+                }
             });
+             updateH2HDropdowns();
         }
 
         function switchLeagueTab(leagueName) {
@@ -178,7 +353,7 @@
         function calculateLeagueStats(leagueMatches, leaguePlayers) {
             const stats = {};
             leaguePlayers.forEach(p => {
-                stats[p] = { player: p, played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0, gd: 0, points: 0 };
+                stats[p] = { player: p, played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0, gd: 0, points: 0, streak: '' };
             });
 
             leagueMatches.forEach(m => {
@@ -194,6 +369,20 @@
                 else { s1.draws++; s1.points++; s2.draws++; s2.points++; }
             });
 
+            leaguePlayers.forEach(p => {
+                const playerMatches = leagueMatches.filter(m => m.player1Name === p || m.player2Name === p).slice(-3);
+                if (playerMatches.length === 3) {
+                    const results = playerMatches.map(m => {
+                        const isP1 = m.player1Name === p;
+                        const pGoals = isP1 ? m.player1Goals : m.player2Goals;
+                        const oGoals = isP1 ? m.player2Goals : m.player1Goals;
+                        return pGoals > oGoals ? 'W' : pGoals < oGoals ? 'L' : 'D';
+                    });
+                    if (results.every(r => r === 'W')) stats[p].streak = '🔥';
+                    if (results.every(r => r === 'L')) stats[p].streak = '❄️';
+                }
+            });
+
             return Object.values(stats).sort((a, b) => b.points - a.points || b.gd - a.gd || b.gf - a.gf);
         }
 
@@ -204,45 +393,221 @@
             return '';
         }
 
-        function getFormGuide(player, leagueMatches) {
-            const playerMatches = leagueMatches.filter(m => m.player1Name === player || m.player2Name === player).slice(-5);
-            return playerMatches.map(m => {
-                const isP1 = m.player1Name === player;
-                const pGoals = isP1 ? m.player1Goals : m.player2Goals;
-                const oGoals = isP1 ? m.player2Goals : m.player1Goals;
-                if (pGoals > oGoals) return '<span class="form-guide-icon win" title="Win"></span>';
-                if (pGoals < oGoals) return '<span class="form-guide-icon loss" title="Loss"></span>';
-                return '<span class="form-guide-icon draw" title="Draw"></span>';
-            }).join('');
-        }
-
-        function generateStandingsHTML(leagueName, standings, leagueMatches) {
+        function generateStandingsHTML(leagueName, standings) {
              if (standings.length === 0) return `<div class="standings-section"><h2 class="text-2xl"><span class="icon">🏆</span>${leagueName} Standings</h2><p>No matches played yet in this league.</p></div>`;
              return `<div class="standings-section">
                 <h2 class="text-2xl mb-4"><span class="icon">🏆</span>${leagueName} Standings</h2>
                 <div class="table-container">
                     <table class="w-full"><thead><tr>
-                        <th>Rank</th><th>Player</th><th>Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th><th>Form</th>
+                        <th>Rank</th><th>Player</th><th>Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
                     </tr></thead><tbody>
-                    ${standings.map((p, i) => {
-                        const clubName = clubAssignments[leagueName]?.[p.player] || 'N/A';
-                        const club = clubs.find(c => c.name === clubName);
-                        const clubLogo = club?.logoUrl || 'https://placehold.co/24x24/e9ecef/495057?text=?';
-
-                        return `<tr class="${getRankClass(i)}">
+                    ${standings.map((p, i) => `
+                        <tr class="${getRankClass(i)}">
                             <td>${i + 1}</td>
-                            <td><a href="profile.html?player=${encodeURIComponent(p.player)}" class="player-name-link">${p.player}</a></td>
-                            <td><img src="${clubLogo}" alt="${clubName}" class="club-logo-sm">${clubName}</td>
+                            <td><a href="profile.html?player=${encodeURIComponent(p.player)}" class="player-name-link">${p.player}</a> <span class="streak">${p.streak}</span></td>
+                            <td>${clubAssignments[leagueName]?.[p.player] || 'N/A'}</td>
                             <td>${p.played}</td><td>${p.wins}</td>
                             <td>${p.draws}</td><td>${p.losses}</td><td>${p.gf}</td>
                             <td>${p.ga}</td><td>${p.gd}</td><td class="font-bold">${p.points}</td>
-                            <td>${getFormGuide(p.player, leagueMatches)}</td>
-                        </tr>`
-                    }).join('')}
+                        </tr>`).join('')}
                     </tbody></table>
                 </div>
             </div>`;
         }
+
+        function calculatePlayerProgress(leagueMatches, leaguePlayers) {
+            const progressData = { labels: [], datasets: [] };
+            let maxGames = 0;
+            leaguePlayers.forEach((player, index) => {
+                const playerMatches = leagueMatches.filter(m => m.player1Name === player || m.player2Name === player);
+                if (playerMatches.length === 0) return;
+                let currentPoints = 0;
+                const pointsHistory = [0];
+                playerMatches.forEach(m => {
+                    const isPlayer1 = m.player1Name === player;
+                    const pGoals = isPlayer1 ? m.player1Goals : m.player2Goals;
+                    const oGoals = isPlayer1 ? m.player2Goals : m.player1Goals;
+                    if (pGoals > oGoals) currentPoints += 3;
+                    else if (pGoals === oGoals) currentPoints += 1;
+                    pointsHistory.push(currentPoints);
+                });
+                progressData.datasets.push({
+                    label: player, data: pointsHistory,
+                    borderColor: chartColors[index % chartColors.length],
+                    backgroundColor: chartColors[index % chartColors.length] + '33',
+                    fill: false, tension: 0.1
+                });
+                if (playerMatches.length > maxGames) maxGames = playerMatches.length;
+            });
+            progressData.labels = Array.from({ length: maxGames + 1 }, (_, i) => `Game ${i}`);
+            return progressData;
+        }
+
+        function renderChart(leagueName, chartData) {
+            const ctx = document.getElementById(`chart-${leagueName}`)?.getContext('2d');
+            if(!ctx) return;
+            const textColor = '#333';
+            const gridColor = '#e9ecef';
+            chartInstances[leagueName] = new Chart(ctx, {
+                type: 'line', data: chartData,
+                options: {
+                    scales: { 
+                        y: { beginAtZero: true, ticks: { color: textColor }, grid: { color: gridColor} }, 
+                        x: { ticks: { color: textColor }, grid: { color: gridColor} } 
+                    },
+                    plugins: { legend: { labels: { color: textColor } } }
+                }
+            });
+        }
+        
+        function calculateTopPlayers(leagueMatches, leaguePlayers) {
+            const stats = {};
+            leaguePlayers.forEach(p => { stats[p] = { player: p, played: 0, gf: 0, ga: 0 }; });
+            leagueMatches.forEach(m => {
+                stats[m.player1Name].played++; stats[m.player2Name].played++;
+                stats[m.player1Name].gf += m.player1Goals; stats[m.player1Name].ga += m.player2Goals;
+                stats[m.player2Name].gf += m.player2Goals; stats[m.player2Name].ga += m.player1Goals;
+            });
+            const allStats = Object.values(stats).filter(p => p.played > 0);
+            const topScorers = [...allStats].sort((a,b) => b.gf - a.gf).slice(0, 3);
+            const topDefenders = [...allStats].sort((a,b) => a.ga - b.ga).slice(0, 3);
+            return { topScorers, topDefenders };
+        }
+        
+        function generateTopPlayersHTML(topScorers, topDefenders) {
+             return `<div class="flex flex-col md:flex-row gap-4">
+                <div class="stats-section flex-1">
+                    <h2 class="text-2xl mb-4"><span class="icon">⚽</span>Top Goal Scorers</h2>
+                    <div class="table-container">
+                        <table class="w-full"><thead><tr><th>Rank</th><th>Player</th><th>Goals</th></tr></thead><tbody>
+                            ${topScorers.map((p, i) => `<tr><td>${i+1}</td><td><a href="profile.html?player=${encodeURIComponent(p.player)}" class="player-name-link">${p.player}</a></td><td class="font-bold">${p.gf}</td></tr>`).join('')}
+                        </tbody></table>
+                    </div>
+                </div>
+                <div class="stats-section flex-1">
+                    <h2 class="text-2xl mb-4"><span class="icon">🛡️</span>Top Defenders</h2>
+                    <div class="table-container">
+                        <table class="w-full"><thead><tr><th>Rank</th><th>Player</th><th>Goals Against</th></tr></thead><tbody>
+                            ${topDefenders.map((p, i) => `<tr><td>${i+1}</td><td><a href="profile.html?player=${encodeURIComponent(p.player)}" class="player-name-link">${p.player}</a></td><td class="font-bold">${p.ga}</td></tr>`).join('')}
+                        </tbody></table>
+                    </div>
+                </div>
+            </div>`;
+        }
+        
+        function renderMOTW() {
+            const motw = matches.find(m => m.isMOTW);
+            if(motw) {
+                motwContainer.innerHTML = `
+                    <h2 class="text-2xl mb-2 text-center">★ Match of the Week ★</h2>
+                    <div class="text-center">
+                        <p class="text-lg">${motw.league}</p>
+                        <p class="text-3xl font-bold my-2">
+                            <a href="profile.html?player=${encodeURIComponent(motw.player1Name)}" class="player-name-link">${motw.player1Name}</a>
+                            <span class="mx-4">${motw.player1Goals} - ${motw.player2Goals}</span>
+                            <a href="profile.html?player=${encodeURIComponent(motw.player2Name)}" class="player-name-link">${motw.player2Name}</a>
+                        </p>
+                    </div>`;
+                motwContainer.classList.remove('hidden');
+            } else {
+                motwContainer.classList.add('hidden');
+            }
+        }
+
+        function renderMatchList() {
+            matchList.innerHTML = [...matches].filter(m => m.status === 'completed').sort((a,b) => b.timestamp - a.timestamp).map(m => `
+                <div class="match-item ${m.isMOTW ? 'match-of-the-week-item' : ''}">
+                    <span>${m.league}: ${m.player1Name} <b>${m.player1Goals}</b> - <b>${m.player2Goals}</b> ${m.player2Name}</span>
+                </div>`).join('') || '<p>No matches in the archive.</p>';
+        }
+
+        function updateH2HDropdowns() {
+            const allPlayers = [...players].sort();
+            const opts = allPlayers.map(p => `<option value="${p}">${p}</option>`).join('');
+            h2hPlayer1Select.innerHTML = `<option value="">Select Player 1</option>${opts}`;
+            h2hPlayer2Select.innerHTML = `<option value="">Select Player 2</option>${opts}`;
+        }
+
+        h2hButton.addEventListener('click', () => {
+            const p1 = h2hPlayer1Select.value;
+            const p2 = h2hPlayer2Select.value;
+            if (!p1 || !p2 || p1 === p2) {
+                h2hResult.innerHTML = '<p>Please select two different players.</p>';
+                return;
+            }
+
+            const h2hMatches = matches.filter(m => 
+                m.status === 'completed' &&
+                ((m.player1Name === p1 && m.player2Name === p2) || (m.player1Name === p2 && m.player2Name === p1))
+            );
+
+            if (h2hMatches.length === 0) {
+                 h2hResult.innerHTML = `<p>No matches played between ${p1} and ${p2}.</p>`;
+                 return;
+            }
+
+            let p1Wins = 0, p2Wins = 0, draws = 0;
+            let p1TotalGoals = 0, p2TotalGoals = 0;
+            let p1BiggestWin = { diff: 0, score: 'N/A' };
+            let p2BiggestWin = { diff: 0, score: 'N/A' };
+
+            h2hMatches.forEach(m => {
+                const isP1Player1 = m.player1Name === p1;
+                const p1Goals = isP1Player1 ? m.player1Goals : m.player2Goals;
+                const p2Goals = isP1Player1 ? m.player2Goals : m.player1Goals;
+                
+                p1TotalGoals += p1Goals;
+                p2TotalGoals += p2Goals;
+
+                if (p1Goals > p2Goals) {
+                    p1Wins++;
+                    if (p1Goals - p2Goals > p1BiggestWin.diff) {
+                        p1BiggestWin = { diff: p1Goals - p2Goals, score: `${p1Goals} - ${p2Goals}` };
+                    }
+                } else if (p2Goals > p1Goals) {
+                    p2Wins++;
+                     if (p2Goals - p1Goals > p2BiggestWin.diff) {
+                        p2BiggestWin = { diff: p2Goals - p1Goals, score: `${p2Goals} - ${p1Goals}` };
+                    }
+                } else {
+                    draws++;
+                }
+            });
+
+            h2hResult.innerHTML = `
+                <div class="h2h-player-stats">
+                    <p class="h2h-player-name">${p1}</p>
+                    <p class="h2h-stat-value">${p1Wins}</p>
+                    <p class="h2h-stat-label">Wins</p>
+                    <p class="h2h-stat-value mt-4">${p1TotalGoals}</p>
+                    <p class="h2h-stat-label">Goals Scored</p>
+                    <p class="h2h-stat-value mt-4">${p1BiggestWin.score}</p>
+                    <p class="h2h-stat-label">Biggest Win</p>
+                </div>
+                <div class="h2h-vs-divider">
+                    <p>${draws}</p>
+                    <p class="h2h-stat-label text-center">Draws</p>
+                </div>
+                <div class="h2h-player-stats">
+                    <p class="h2h-player-name">${p2}</p>
+                     <p class="h2h-stat-value">${p2Wins}</p>
+                    <p class="h2h-stat-label">Wins</p>
+                    <p class="h2h-stat-value mt-4">${p2TotalGoals}</p>
+                    <p class="h2h-stat-label">Goals Scored</p>
+                    <p class="h2h-stat-value mt-4">${p2BiggestWin.score}</p>
+                    <p class="h2h-stat-label">Biggest Win</p>
+                </div>
+            `;
+        });
+        
+        document.body.addEventListener('click', (e) => {
+            if (e.target.matches('.cancel-button')) {
+                e.target.closest('.modal').style.display = 'none';
+            }
+            if (e.target === playerProfileModal) {
+                 playerProfileModal.style.display = 'none';
+            }
+        });
         
         document.addEventListener('DOMContentLoaded', startApp);
     </script>
