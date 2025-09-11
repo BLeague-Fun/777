@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FC 2025 League Tracker X</title>
+    <title>FC 2025 League Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
@@ -169,7 +169,7 @@
 <body>
 
     <div class="container">
-        <h1 class="text-4xl">Fifa IN2 League </h1>
+        <h1 class="text-4xl">FC 2025 League Tracker</h1>
         <p class="text-center text-sm mt-2 text-gray-500">Your User ID: <span id="userIdDisplay">Loading...</span></p>
 
         <div class="tab-buttons">
@@ -313,11 +313,8 @@
                 auth = getAuth(app);
                 db = getFirestore(app);
 
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                // Sign in anonymously to get a user ID
+                await signInAnonymously(auth);
                 
                 auth.onAuthStateChanged(user => {
                     if (user) {
@@ -325,12 +322,14 @@
                         userIdDisplay.textContent = userId;
                         setupListeners();
                     } else {
-                        // Signed out
+                        // User signed out
+                        userIdDisplay.textContent = "Signed Out";
                     }
                 });
 
             } catch (error) {
                 console.error("Firebase initialization error:", error);
+                userIdDisplay.textContent = "Error";
             }
         }
         
@@ -645,8 +644,12 @@
             itemToDelete = null;
             confirmationModal.style.display = 'none';
         });
+        
+        // Initial setup
+        window.onload = function() {
+            initializeApp();
+        };
 
-        initializeApp();
     </script>
 </body>
 </html>
