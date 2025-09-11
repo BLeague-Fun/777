@@ -169,7 +169,7 @@
 <body>
 
     <div class="container">
-        <h1 class="text-4xl">FC  League Tracker</h1>
+        <h1 class="text-4xl">FC 2025 League Tracker</h1>
         <p class="text-center text-sm mt-2 text-gray-500">Your User ID: <span id="userIdDisplay">Loading...</span></p>
 
         <div class="tab-buttons">
@@ -210,14 +210,16 @@
                         </tr>
                     </thead>
                     <tbody id="standingsTableBody">
-                        </tbody>
+                        <!-- Standings will be populated by JavaScript -->
+                    </tbody>
                 </table>
             </div>
 
             <div class="archive-section">
                 <h2 class="text-2xl mb-4">Match Archive</h2>
                 <div id="matchList">
-                    </div>
+                    <!-- Matches will be populated by JavaScript -->
+                </div>
             </div>
         </div>
 
@@ -243,6 +245,7 @@
 
     </div>
 
+    <!-- The Confirmation Modal -->
     <div id="confirmationModal" class="modal">
         <div class="modal-content">
             <p id="modalText"></p>
@@ -257,9 +260,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        // IMPORTANT: Global variables for Firebase setup
-        const appId = "fun-league-6edd6";
         
         const firebaseConfig = {
           apiKey: "AIzaSyBvXdFou9yUlERH-iaICi6JjNChw1rC2O0",
@@ -301,14 +301,12 @@
         let leagues = [];
         let matches = [];
         
-        // Initialize Firebase and set up listeners
         async function startApp() {
             try {
                 const app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
 
-                // Sign in anonymously to get a user ID
                 await signInAnonymously(auth);
                 
                 auth.onAuthStateChanged(user => {
@@ -317,7 +315,6 @@
                         userIdDisplay.textContent = userId;
                         setupListeners();
                     } else {
-                        // User signed out
                         userIdDisplay.textContent = "Signed Out";
                     }
                 });
@@ -329,30 +326,26 @@
         }
         
         function setupListeners() {
-            // Listen for players collection changes
-            onSnapshot(collection(db, `/artifacts/${appId}/public/data/players`), (snapshot) => {
+            // UPDATED PATH
+            onSnapshot(collection(db, 'players'), (snapshot) => {
                 players = [];
                 snapshot.forEach((doc) => {
                     players.push(doc.data().name);
                 });
                 renderPlayerLists();
-            }, (error) => {
-                console.error("Error fetching players: ", error);
-            });
+            }, (error) => console.error("Error fetching players: ", error));
             
-            // Listen for leagues collection changes
-            onSnapshot(collection(db, `/artifacts/${appId}/public/data/leagues`), (snapshot) => {
+            // UPDATED PATH
+            onSnapshot(collection(db, 'leagues'), (snapshot) => {
                 leagues = [];
                 snapshot.forEach((doc) => {
                     leagues.push(doc.data().name);
                 });
                 renderLeagueLists();
-            }, (error) => {
-                console.error("Error fetching leagues: ", error);
-            });
+            }, (error) => console.error("Error fetching leagues: ", error));
             
-            // Listen for matches collection changes
-            const q = query(collection(db, `/artifacts/${appId}/public/data/matches`));
+            // UPDATED PATH
+            const q = query(collection(db, 'matches'));
             onSnapshot(q, (snapshot) => {
                 matches = [];
                 snapshot.forEach((doc) => {
@@ -360,9 +353,7 @@
                 });
                 calculateStandings();
                 renderMatchList();
-            }, (error) => {
-                console.error("Error fetching matches: ", error);
-            });
+            }, (error) => console.error("Error fetching matches: ", error));
         }
 
         function showTab(tabId) {
@@ -453,8 +444,6 @@
 
             matches.forEach(match => {
                 const { player1Name, player1Goals, player2Name, player2Goals } = match;
-
-                // Update common stats for both players
                 if (playerStats[player1Name] && playerStats[player2Name]) {
                     playerStats[player1Name].played++;
                     playerStats[player2Name].played++;
@@ -465,7 +454,6 @@
                     playerStats[player1Name].gd = playerStats[player1Name].gf - playerStats[player1Name].ga;
                     playerStats[player2Name].gd = playerStats[player2Name].gf - playerStats[player2Name].ga;
 
-                    // Determine winner and update points
                     if (player1Goals > player2Goals) {
                         playerStats[player1Name].wins++;
                         playerStats[player1Name].points += 3;
@@ -483,13 +471,11 @@
                 }
             });
 
-            // Convert object to array and sort
             const sortedStandings = Object.values(playerStats).sort((a, b) => {
                 if (a.points !== b.points) return b.points - a.points;
                 if (a.gd !== b.gd) return b.gd - a.gd;
                 return b.gf - a.gf;
             });
-
             renderStandingsTable(sortedStandings);
         }
 
@@ -527,7 +513,6 @@
             }
 
             const sortedMatches = [...matches].sort((a, b) => b.timestamp - a.timestamp);
-
             sortedMatches.forEach((match) => {
                 const div = document.createElement('div');
                 div.className = 'match-item';
@@ -549,7 +534,8 @@
             const playerName = document.getElementById('playerNameInput').value.trim();
             if (playerName && !players.includes(playerName)) {
                 try {
-                    await addDoc(collection(db, `/artifacts/${appId}/public/data/players`), { name: playerName, owner: userId });
+                    // UPDATED PATH
+                    await addDoc(collection(db, 'players'), { name: playerName, owner: userId });
                     addPlayerForm.reset();
                 } catch (e) {
                     console.error("Error adding player: ", e);
@@ -563,7 +549,8 @@
             const leagueName = document.getElementById('leagueNameInput').value.trim();
             if (leagueName && !leagues.includes(leagueName)) {
                 try {
-                    await addDoc(collection(db, `/artifacts/${appId}/public/data/leagues`), { name: leagueName, owner: userId });
+                    // UPDATED PATH
+                    await addDoc(collection(db, 'leagues'), { name: leagueName, owner: userId });
                     addLeagueForm.reset();
                 } catch (e) {
                     console.error("Error adding league: ", e);
@@ -583,7 +570,8 @@
             if (league && player1Name && player2Name && !isNaN(player1Goals) && !isNaN(player2Goals) && player1Name !== player2Name) {
                 const newMatch = { league, player1Name, player1Goals, player2Name, player2Goals, timestamp: Date.now() };
                 try {
-                    await addDoc(collection(db, `/artifacts/${appId}/public/data/matches`), newMatch);
+                    // UPDATED PATH
+                    await addDoc(collection(db, 'matches'), newMatch);
                     addMatchForm.reset();
                 } catch (e) {
                     console.error("Error adding match: ", e);
@@ -591,7 +579,6 @@
             }
         });
 
-        // Show confirmation modal for any deletion
         document.addEventListener('click', (e) => {
             if (e.target.closest('.delete-item-btn')) {
                 const button = e.target.closest('.delete-item-btn');
@@ -605,24 +592,22 @@
             }
         });
 
-        // Delete the item if confirmed
         confirmDeleteButton.addEventListener('click', async () => {
             if (itemToDelete) {
                 try {
                     if (itemToDelete.type === 'match') {
-                        await deleteDoc(doc(db, `/artifacts/${appId}/public/data/matches`, itemToDelete.id));
+                        // UPDATED PATH
+                        await deleteDoc(doc(db, 'matches', itemToDelete.id));
                     } else if (itemToDelete.type === 'player') {
-                        const playerQuery = query(collection(db, `/artifacts/${appId}/public/data/players`), where("name", "==", itemToDelete.name));
+                        // UPDATED PATH
+                        const playerQuery = query(collection(db, 'players'), where("name", "==", itemToDelete.name));
                         const snapshot = await getDocs(playerQuery);
-                        snapshot.forEach(async (doc) => {
-                            await deleteDoc(doc.ref);
-                        });
+                        snapshot.forEach(async (doc) => await deleteDoc(doc.ref));
                     } else if (itemToDelete.type === 'league') {
-                        const leagueQuery = query(collection(db, `/artifacts/${appId}/public/data/leagues`), where("name", "==", itemToDelete.name));
+                        // UPDATED PATH
+                        const leagueQuery = query(collection(db, 'leagues'), where("name", "==", itemToDelete.name));
                         const snapshot = await getDocs(leagueQuery);
-                        snapshot.forEach(async (doc) => {
-                            await deleteDoc(doc.ref);
-                        });
+                        snapshot.forEach(async (doc) => await deleteDoc(doc.ref));
                     }
                 } catch (e) {
                     console.error("Error deleting item: ", e);
@@ -632,20 +617,18 @@
             confirmationModal.style.display = 'none';
         });
 
-        // Hide the modal if canceled
         cancelDeleteButton.addEventListener('click', () => {
             itemToDelete = null;
             confirmationModal.style.display = 'none';
         });
 
-        // Add event listeners for the tab buttons
         matchesTabButton.addEventListener('click', () => showTab('matches'));
         setupTabButton.addEventListener('click', () => showTab('setup'));
         
-        // Initial setup
         document.addEventListener('DOMContentLoaded', () => {
             startApp();
         });
     </script>
 </body>
 </html>
+
