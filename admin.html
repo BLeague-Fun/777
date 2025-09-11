@@ -343,8 +343,8 @@
                 <div class="league-item">
                     <span>${l.name}</span> 
                     <div class="flex items-center gap-2">
-                         <button class="generate-fixtures-btn button text-sm p-2 ${l.fixturesGenerated ? 'disabled' : ''}" data-league-id="${l.id}" data-league-name="${l.name}" ${l.fixturesGenerated ? 'disabled' : ''}>Generate Fixtures</button>
-                         <button class="end-league-btn" data-league-name="${l.name}" title="End League"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg></button>
+                         <button class="generate-fixtures-btn button text-sm p-2 ${l.fixturesGenerated || l.status === 'ended' ? 'disabled' : ''}" data-league-id="${l.id}" data-league-name="${l.name}" ${l.fixturesGenerated || l.status === 'ended' ? 'disabled' : ''}>Generate Fixtures</button>
+                         <button class="end-league-btn" data-league-id="${l.id}" data-league-name="${l.name}" title="End League & Award Titles" ${l.status === 'ended' ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg></button>
                     </div>
                 </div>`).join('') || '<p>No leagues created yet.</p>';
         }
@@ -509,6 +509,75 @@
             }
         });
 
+        async function endLeague(leagueId, leagueName) {
+            if (!confirm(`Are you sure you want to end the "${leagueName}" league? This will award titles and cancel all remaining pending games.`)) return;
+
+            const leagueRef = doc(db, 'leagues', leagueId);
+            const completedMatches = matches.filter(m => m.league === leagueName && m.status === 'completed');
+            const leaguePlayers = [...new Set(completedMatches.flatMap(m => [m.player1Name, m.player2Name]))];
+
+            const standings = calculateLeagueStats(completedMatches, leaguePlayers);
+            const { topScorers, topDefenders } = calculateTopPlayers(completedMatches, leaguePlayers);
+            
+            const batch = writeBatch(db);
+            const timestamp = Date.now();
+
+            // Award Medals
+            if (standings[0]) batch.set(doc(collection(db, 'honors')), { playerName: standings[0].player, leagueName, award: 'Gold Medal', timestamp });
+            if (standings[1]) batch.set(doc(collection(db, 'honors')), { playerName: standings[1].player, leagueName, award: 'Silver Medal', timestamp });
+            if (standings[2]) batch.set(doc(collection(db, 'honors')), { playerName: standings[2].player, leagueName, award: 'Bronze Medal', timestamp });
+
+            // Award Top Scorer & Defender
+            if (topScorers[0]) batch.set(doc(collection(db, 'honors')), { playerName: topScorers[0].player, leagueName, award: 'Top Scorer', timestamp });
+            if (topDefenders[0]) batch.set(doc(collection(db, 'honors')), { playerName: topDefenders[0].player, leagueName, award: 'Best Defender', timestamp });
+
+            // Cancel pending games
+            const pendingInLeague = matches.filter(m => m.league === leagueName && m.status === 'pending');
+            pendingInLeague.forEach(m => batch.delete(doc(db, 'matches', m.id)));
+
+            // Mark league as ended
+            batch.update(leagueRef, { status: 'ended' });
+
+            await batch.commit();
+            alert(`"${leagueName}" has been ended and titles have been awarded!`);
+        }
+        
+        function calculateTopPlayers(leagueMatches, leaguePlayers) {
+            const stats = {};
+            leaguePlayers.forEach(p => { stats[p] = { player: p, played: 0, gf: 0, ga: 0 }; });
+            leagueMatches.forEach(m => {
+                stats[m.player1Name].played++; stats[m.player2Name].played++;
+                stats[m.player1Name].gf += m.player1Goals; stats[m.player1Name].ga += m.player2Goals;
+                stats[m.player2Name].gf += m.player2Goals; stats[m.player2Name].ga += m.player1Goals;
+            });
+            const allStats = Object.values(stats).filter(p => p.played > 0);
+            const topScorers = [...allStats].sort((a,b) => b.gf - a.gf).slice(0, 1);
+            const topDefenders = [...allStats].sort((a,b) => a.ga - b.ga).slice(0, 1);
+            return { topScorers, topDefenders };
+        }
+
+         function calculateLeagueStats(leagueMatches, leaguePlayers) {
+            const stats = {};
+            leaguePlayers.forEach(p => {
+                stats[p] = { player: p, played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0, gd: 0, points: 0 };
+            });
+
+            leagueMatches.forEach(m => {
+                const s1 = stats[m.player1Name], s2 = stats[m.player2Name];
+                if (!s1 || !s2) return;
+                s1.played++; s2.played++;
+                s1.gf += m.player1Goals; s1.ga += m.player2Goals;
+                s2.gf += m.player2Goals; s2.ga += m.player1Goals;
+                s1.gd = s1.gf - s1.ga; s2.gd = s2.gf - s2.ga;
+
+                if (m.player1Goals > m.player2Goals) { s1.wins++; s1.points += 3; s2.losses++; }
+                else if (m.player2Goals > m.player1Goals) { s2.wins++; s2.points += 3; s1.losses++; }
+                else { s1.draws++; s1.points++; s2.draws++; s2.points++; }
+            });
+
+            return Object.values(stats).sort((a, b) => b.points - a.points || b.gd - a.gd || b.gf - a.gf);
+        }
+
         document.addEventListener('click', async (e) => {
             const deleteBtn = e.target.closest('.delete-item-btn');
             if (deleteBtn) {
@@ -532,17 +601,8 @@
             }
             
             const endLeagueBtn = e.target.closest('.end-league-btn');
-            if (endLeagueBtn) {
-                const leagueName = endLeagueBtn.dataset.leagueName;
-                if (confirm(`Are you sure you want to end the "${leagueName}" league? This will cancel all remaining pending games.`)) {
-                    const batch = writeBatch(db);
-                    const pendingInLeague = matches.filter(m => m.league === leagueName && m.status === 'pending');
-                    pendingInLeague.forEach(m => {
-                        batch.delete(doc(db, 'matches', m.id));
-                    });
-                    await batch.commit();
-                    alert(`All pending games for "${leagueName}" have been cancelled.`);
-                }
+            if (endLeagueBtn && !endLeagueBtn.disabled) {
+                await endLeague(endLeagueBtn.dataset.leagueId, endLeagueBtn.dataset.leagueName);
             }
 
             const resultBtn = e.target.closest('.enter-result-btn');
@@ -569,7 +629,7 @@
             const lName = leagueNameInput.value.trim(); 
             const roster = Array.from(document.querySelectorAll('#playerRosterChecklist input:checked')).map(el => el.value);
             if (lName && roster.length >= 2) { 
-                await addDoc(collection(db, 'leagues'), { name: lName, owner: userId, roster, fixturesGenerated: false }); 
+                await addDoc(collection(db, 'leagues'), { name: lName, owner: userId, roster, fixturesGenerated: false, status: 'active' }); 
                 createLeagueForm.reset();
             } else {
                 alert('Please enter a league name and select at least two players.');
@@ -584,4 +644,3 @@
     </script>
 </body>
 </html>
-
