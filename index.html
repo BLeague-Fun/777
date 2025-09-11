@@ -259,6 +259,7 @@
         import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // IMPORTANT: Global variables for Firebase setup
         const appId = "fun-league-6edd6";
         
         const firebaseConfig = {
@@ -470,8 +471,7 @@
                 playerStats[player2Name].gf += player2Goals;
                 playerStats[player2Name].ga += player1Goals;
                 playerStats[player1Name].gd = playerStats[player1Name].gf - playerStats[player1Name].ga;
-                playerStats[player2Name].gd = playerStats[player2Name].gf - playerStats[2]
-                playerStats[player2Name].ga;
+                playerStats[player2Name].gd = playerStats[player2Name].gf - playerStats[player2Name].ga;
 
                 // Determine winner and update points
                 if (player1Goals > player2Goals) {
