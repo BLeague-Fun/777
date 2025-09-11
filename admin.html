@@ -102,6 +102,13 @@
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 0.5rem;
         }
+        .player-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 1rem;
+            object-fit: cover;
+        }
     </style>
 </head>
 <body>
@@ -162,6 +169,8 @@
                     <h2 class="text-2xl mb-4">Manage Players</h2>
                     <form id="addPlayerForm" class="flex flex-col gap-4">
                         <input type="text" id="playerNameInput" placeholder="New Player Name" required>
+                        <input type="email" id="playerEmailInput" placeholder="Player Email">
+                        <input type="url" id="playerAvatarInput" placeholder="Player Avatar URL">
                         <button type="submit">Add Player</button>
                     </form>
                     <div id="playerList" class="mt-4 max-h-60 overflow-y-auto"></div>
@@ -246,6 +255,7 @@
         
         const adminUID = "ujMJ9cUFxxguzNmezN6iF2TQNN52";
 
+        // DOM elements
         const loginSection = document.getElementById('loginSection');
         const loginForm = document.getElementById('loginForm');
         const loginError = document.getElementById('loginError');
@@ -313,7 +323,7 @@
 
         function setupListeners() {
             onSnapshot(collection(db, 'players'), snapshot => {
-                players = snapshot.docs.map(doc => doc.data().name);
+                players = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderPlayerLists();
             });
             onSnapshot(collection(db, 'leagues'), snapshot => {
@@ -334,8 +344,19 @@
         }
         
         function renderPlayerLists() {
-            playerRosterChecklist.innerHTML = players.map(p => `<div><input type="checkbox" id="player-${p}" value="${p}" class="mr-2"><label for="player-${p}">${p}</label></div>`).join('');
-            playerListContainer.innerHTML = players.map(p => `<div class="player-item"><span>${p}</span><button data-name="${p}" data-type="player" class="delete-item-btn"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button></div>`).join('') || '<p>No players added yet.</p>';
+            const playerNames = players.map(p => p.name);
+            playerRosterChecklist.innerHTML = players.map(p => `<div><input type="checkbox" id="player-${p.id}" value="${p.name}" class="mr-2"><label for="player-${p.id}">${p.name}</label></div>`).join('');
+            playerListContainer.innerHTML = players.map(p => `
+                <div class="player-item">
+                    <div class="flex items-center">
+                        <img src="${p.avatarUrl || 'https://placehold.co/40x40/e9ecef/495057?text=?'}" alt="${p.name}" class="player-avatar">
+                        <div>
+                            <p class="font-bold">${p.name}</p>
+                            <p class="text-sm text-gray-500">${p.email || 'No email'}</p>
+                        </div>
+                    </div>
+                    <button data-id="${p.id}" data-type="player" class="delete-item-btn"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>
+                </div>`).join('') || '<p>No players added yet.</p>';
         }
         
         function renderLeagueLists() {
@@ -513,23 +534,25 @@
             if (!confirm(`Are you sure you want to end the "${leagueName}" league? This will award titles and cancel all remaining pending games.`)) return;
 
             const leagueRef = doc(db, 'leagues', leagueId);
+            const leagueData = leagues.find(l => l.id === leagueId);
             const completedMatches = matches.filter(m => m.league === leagueName && m.status === 'completed');
-            const leaguePlayers = [...new Set(completedMatches.flatMap(m => [m.player1Name, m.player2Name]))];
+            const leaguePlayers = leagueData?.roster || [];
 
             const standings = calculateLeagueStats(completedMatches, leaguePlayers);
             const { topScorers, topDefenders } = calculateTopPlayers(completedMatches, leaguePlayers);
             
             const batch = writeBatch(db);
             const timestamp = Date.now();
+            const leagueDate = leagueData.createdAt;
 
             // Award Medals
-            if (standings[0]) batch.set(doc(collection(db, 'honors')), { playerName: standings[0].player, leagueName, award: 'Gold Medal', timestamp });
-            if (standings[1]) batch.set(doc(collection(db, 'honors')), { playerName: standings[1].player, leagueName, award: 'Silver Medal', timestamp });
-            if (standings[2]) batch.set(doc(collection(db, 'honors')), { playerName: standings[2].player, leagueName, award: 'Bronze Medal', timestamp });
+            if (standings[0]) batch.set(doc(collection(db, 'honors')), { playerName: standings[0].player, leagueName, award: 'Gold Medal', timestamp, leagueDate });
+            if (standings[1]) batch.set(doc(collection(db, 'honors')), { playerName: standings[1].player, leagueName, award: 'Silver Medal', timestamp, leagueDate });
+            if (standings[2]) batch.set(doc(collection(db, 'honors')), { playerName: standings[2].player, leagueName, award: 'Bronze Medal', timestamp, leagueDate });
 
             // Award Top Scorer & Defender
-            if (topScorers[0]) batch.set(doc(collection(db, 'honors')), { playerName: topScorers[0].player, leagueName, award: 'Top Scorer', timestamp });
-            if (topDefenders[0]) batch.set(doc(collection(db, 'honors')), { playerName: topDefenders[0].player, leagueName, award: 'Best Defender', timestamp });
+            if (topScorers[0]) batch.set(doc(collection(db, 'honors')), { playerName: topScorers[0].player, leagueName, award: 'Top Scorer', timestamp, leagueDate });
+            if (topDefenders[0]) batch.set(doc(collection(db, 'honors')), { playerName: topDefenders[0].player, leagueName, award: 'Best Defender', timestamp, leagueDate });
 
             // Cancel pending games
             const pendingInLeague = matches.filter(m => m.league === leagueName && m.status === 'pending');
@@ -623,13 +646,24 @@
             }
         });
 
-        addPlayerForm.addEventListener('submit', async e => { e.preventDefault(); const pName = document.getElementById('playerNameInput').value.trim(); if (pName && !players.includes(pName)) { await addDoc(collection(db, 'players'), { name: pName, owner: userId }); addPlayerForm.reset(); } });
+        addPlayerForm.addEventListener('submit', async e => { 
+            e.preventDefault(); 
+            const pName = document.getElementById('playerNameInput').value.trim(); 
+            const pEmail = document.getElementById('playerEmailInput').value.trim();
+            const pAvatar = document.getElementById('playerAvatarInput').value.trim();
+            if (pName && !players.find(p => p.name === pName)) { 
+                await addDoc(collection(db, 'players'), { name: pName, email: pEmail, avatarUrl: pAvatar }); 
+                addPlayerForm.reset(); 
+            } else {
+                alert('A player with this name already exists.');
+            }
+        });
         createLeagueForm.addEventListener('submit', async e => { 
             e.preventDefault(); 
             const lName = leagueNameInput.value.trim(); 
             const roster = Array.from(document.querySelectorAll('#playerRosterChecklist input:checked')).map(el => el.value);
             if (lName && roster.length >= 2) { 
-                await addDoc(collection(db, 'leagues'), { name: lName, owner: userId, roster, fixturesGenerated: false, status: 'active' }); 
+                await addDoc(collection(db, 'leagues'), { name: lName, owner: userId, roster, fixturesGenerated: false, status: 'active', createdAt: Date.now() }); 
                 createLeagueForm.reset();
             } else {
                 alert('Please enter a league name and select at least two players.');
