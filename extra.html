@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extra Features - Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #333; }
+        .container { max-width: 90%; margin: 2rem auto; padding: 2rem; background-color: rgba(255, 255, 255, 0.85); border-radius: 1rem; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1); }
+        h1, h2 { color: #00b894; text-align: center; font-weight: 700; }
+        .form-section { background-color: rgba(255, 255, 255, 0.9); padding: 1.5rem; border-radius: 0.75rem; margin-top: 1.5rem; border: 1px solid #e9ecef; }
+        .form-section h2 { text-align: left; }
+        input, button, select { padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #dee2e6; background-color: #f6f8fa; color: #333; }
+        button { background-color: #00b894; color: white; font-weight: 500; cursor: pointer; }
+        button:hover { background-color: #00a884; }
+        .hidden { display: none; }
+        .player-assignment-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #dee2e6; }
+        .player-avatar { width: 40px; height: 40px; border-radius: 50%; margin-right: 1rem; object-fit: cover; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loginSection">
+            <h1 class="text-4xl font-extrabold">Admin Login Required</h1>
+            <form id="loginForm" class="mt-4 max-w-sm mx-auto bg-white p-6 rounded-lg border">
+                <div class="mb-4"><label for="email" class="block mb-2">Email</label><input type="email" id="email" required class="w-full"></div>
+                <div class="mb-6"><label for="password" class="block mb-2">Password</label><input type="password" id="password" required class="w-full"></div>
+                <button type="submit" class="w-full">Login</button>
+                <p id="loginError" class="text-red-500 text-center mt-4 hidden"></p>
+            </form>
+        </div>
+
+        <div id="adminControls" class="hidden">
+            <h1 class="text-4xl font-extrabold">Extra Features</h1>
+            <p class="text-center mt-2"><a href="admin.html" class="text-green-500 hover:underline">← Back to Main Admin Panel</a></p>
+
+            <div class="form-section">
+                <h2 class="text-2xl mb-4">Assign Favorite Club</h2>
+                <p class="text-sm text-gray-600 mb-4">Assign a favorite club to each player. This will be displayed on their public profile page.</p>
+                <div id="favoriteClubAssignments" class="max-h-96 overflow-y-auto mb-4"></div>
+                <button id="saveFavoriteClubs" class="w-full">Save Favorite Clubs</button>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, updateDoc, onSnapshot, collection, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBvXdFou9yUlERH-iaICi6JjNChw1rC2O0",
+          authDomain: "fun-league-6edd6.firebaseapp.com",
+          projectId: "fun-league-6edd6",
+          storageBucket: "fun-league-6edd6.appspot.com",
+          messagingSenderId: "132854098604",
+          appId: "1:132854098604:web:0c0e829ac99624dac38d09",
+          measurementId: "G-QJCY28B9HM"
+        };
+        
+        const adminUID = "ujMJ9cUFxxguzNmezN6iF2TQNN52";
+
+        const loginSection = document.getElementById('loginSection');
+        const loginForm = document.getElementById('loginForm');
+        const loginError = document.getElementById('loginError');
+        const adminControls = document.getElementById('adminControls');
+        const favoriteClubAssignments = document.getElementById('favoriteClubAssignments');
+        const saveFavoriteClubs = document.getElementById('saveFavoriteClubs');
+        
+        let db, auth;
+        let players = [], clubs = [];
+
+        async function startApp() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                
+                onAuthStateChanged(auth, user => {
+                    if (user && user.uid === adminUID) {
+                        loginSection.classList.add('hidden');
+                        adminControls.classList.remove('hidden');
+                        setupListeners();
+                    } else {
+                        loginSection.classList.remove('hidden');
+                        adminControls.classList.add('hidden');
+                    }
+                });
+            } catch (error) { console.error("Initialization error:", error); }
+        }
+        
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            loginError.classList.add('hidden');
+            try { await signInWithEmailAndPassword(auth, email, password); } 
+            catch (error) {
+                console.error("Login failed:", error);
+                loginError.textContent = "Login failed. Please check your credentials.";
+                loginError.classList.remove('hidden');
+            }
+        });
+
+        function setupListeners() {
+            onSnapshot(collection(db, 'players'), snapshot => {
+                players = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAssignments();
+            });
+            onSnapshot(collection(db, 'clubs'), snapshot => {
+                clubs = snapshot.docs.map(doc => doc.data().name);
+                renderAssignments();
+            });
+        }
+
+        function renderAssignments() {
+            if (players.length === 0 || clubs.length === 0) {
+                favoriteClubAssignments.innerHTML = '<p>Please add players and clubs in the main admin panel first.</p>';
+                return;
+            }
+            favoriteClubAssignments.innerHTML = players.sort((a,b) => a.name.localeCompare(b.name)).map(player => `
+                <div class="player-assignment-item">
+                    <div class="flex items-center">
+                        <img src="${player.avatarUrl || 'https://placehold.co/40x40/e9ecef/495057?text=?'}" alt="${player.name}" class="player-avatar">
+                        <p class="font-bold">${player.name}</p>
+                    </div>
+                    <select data-player-id="${player.id}" class="w-1/2">
+                        <option value="">None</option>
+                        ${clubs.sort().map(club => `<option value="${club}" ${player.favoriteClub === club ? 'selected' : ''}>${club}</option>`).join('')}
+                    </select>
+                </div>
+            `).join('');
+        }
+
+        saveFavoriteClubs.addEventListener('click', async () => {
+            const batch = writeBatch(db);
+            const selects = document.querySelectorAll('#favoriteClubAssignments select');
+            
+            selects.forEach(select => {
+                const playerId = select.dataset.playerId;
+                const playerRef = doc(db, 'players', playerId);
+                batch.update(playerRef, { favoriteClub: select.value });
+            });
+
+            try {
+                await batch.commit();
+                alert('Favorite clubs have been saved successfully!');
+            } catch (error) {
+                console.error('Error saving favorite clubs: ', error);
+                alert('An error occurred. Please check the console.');
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', startApp);
+    </script>
+</body>
+</html>
