@@ -259,10 +259,19 @@
         import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // IMPORTANT: Global variables for Firebase setup
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const appId = "fun-league-6edd6";
+        
+        const firebaseConfig = {
+          apiKey: "AIzaSyBvXdFou9yUlERH-iaICi6JjNChw1rC2O0",
+          authDomain: "fun-league-6edd6.firebaseapp.com",
+          projectId: "fun-league-6edd6",
+          storageBucket: "fun-league-6edd6.firebasestorage.app",
+          messagingSenderId: "132854098604",
+          appId: "1:132854098604:web:0c0e829ac99624dac38d09",
+          measurementId: "G-QJCY28B9HM"
+        };
+        
+        const initialAuthToken = null;
         
         // DOM element references
         const addMatchForm = document.getElementById('addMatchForm');
@@ -461,7 +470,8 @@
                 playerStats[player2Name].gf += player2Goals;
                 playerStats[player2Name].ga += player1Goals;
                 playerStats[player1Name].gd = playerStats[player1Name].gf - playerStats[player1Name].ga;
-                playerStats[player2Name].gd = playerStats[player2Name].gf - playerStats[player2Name].ga;
+                playerStats[player2Name].gd = playerStats[player2Name].gf - playerStats[2]
+                playerStats[player2Name].ga;
 
                 // Determine winner and update points
                 if (player1Goals > player2Goals) {
