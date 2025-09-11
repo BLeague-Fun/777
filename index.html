@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FC 2025 League Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
         body {
@@ -94,6 +95,7 @@
             background-color: rgba(0, 0, 0, 0.6);
             justify-content: center;
             align-items: center;
+            overflow-y: auto;
         }
         .modal-content {
             background-color: #161b22;
@@ -101,7 +103,8 @@
             border-radius: 0.75rem;
             border: 1px solid #30363d;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            text-align: center;
+            width: 90%;
+            max-width: 600px;
         }
         .modal-content p {
             margin-bottom: 1.5rem;
@@ -171,6 +174,17 @@
         .rank-gold { background-color: rgba(255, 215, 0, 0.15); }
         .rank-silver { background-color: rgba(192, 192, 192, 0.15); }
         .rank-bronze { background-color: rgba(205, 127, 50, 0.15); }
+        .player-name-link {
+            cursor: pointer;
+            text-decoration: underline;
+            color: #58a6ff;
+        }
+        .match-of-the-week {
+            background-color: rgba(255, 215, 0, 0.1);
+            border-left: 3px solid #ffd700;
+        }
+        .star-btn { color: #6e7681; }
+        .star-btn.active { color: #ffd700; }
     </style>
 </head>
 <body>
@@ -187,6 +201,18 @@
         <div id="matchesTab" class="tab-content">
             <div id="leagueTabsContainer" class="league-tabs-container"></div>
             <div id="leagueContentContainer"></div>
+
+             <div class="stats-section">
+                <h2 class="text-2xl mb-4">Head-to-Head</h2>
+                <div class="flex items-center gap-4">
+                    <select id="h2hPlayer1Select" class="w-full"></select>
+                    <span class="font-bold">vs</span>
+                    <select id="h2hPlayer2Select" class="w-full"></select>
+                    <button id="h2hButton" class="bg-blue-600 hover:bg-blue-500">Compare</button>
+                </div>
+                <div id="h2hResult" class="mt-4 text-center"></div>
+            </div>
+
             <div class="archive-section">
                 <h2 class="text-2xl mb-4">Match Archive</h2>
                 <div id="matchList"></div>
@@ -214,7 +240,6 @@
                 </form>
                 <div id="playerList" class="mt-4"></div>
             </div>
-
             <div class="form-section">
                 <h2 class="text-2xl mb-4">Add a New League</h2>
                 <form id="addLeagueForm" class="flex flex-col gap-4">
@@ -224,24 +249,28 @@
                 <div id="leagueList" class="mt-4"></div>
             </div>
         </div>
-
     </div>
 
-    <!-- The Confirmation Modal -->
+    <!-- Modals -->
     <div id="confirmationModal" class="modal">
         <div class="modal-content">
             <p id="modalText"></p>
             <div class="modal-buttons">
                 <button id="cancelDeleteButton" class="bg-gray-700 hover:bg-gray-600">Cancel</button>
-                <button id="confirmDeleteButton" class="confirm hover:bg-red-600">Delete</button>
+                <button id="confirmDeleteButton" class="confirm">Delete</button>
             </div>
         </div>
     </div>
 
+    <div id="playerProfileModal" class="modal">
+         <div id="playerProfileContent" class="modal-content"></div>
+    </div>
+
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, addDoc, deleteDoc, updateDoc, onSnapshot, collection, query, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         const firebaseConfig = {
           apiKey: "AIzaSyBvXdFou9yUlERH-iaICi6JjNChw1rC2O0",
@@ -256,11 +285,17 @@
         const adminUID = "7ss4Z12tDkgCQB1pevK6gKR1WpI3";
 
         // DOM element references
-        const addMatchForm = document.getElementById('addMatchForm');
-        const leagueTabsContainer = document.getElementById('leagueTabsContainer');
-        const leagueContentContainer = document.getElementById('leagueContentContainer');
         const matchList = document.getElementById('matchList');
         const confirmationModal = document.getElementById('confirmationModal');
+        const playerProfileModal = document.getElementById('playerProfileModal');
+        const playerProfileContent = document.getElementById('playerProfileContent');
+        const h2hPlayer1Select = document.getElementById('h2hPlayer1Select');
+        const h2hPlayer2Select = document.getElementById('h2hPlayer2Select');
+        const h2hButton = document.getElementById('h2hButton');
+        const h2hResult = document.getElementById('h2hResult');
+        const leagueTabsContainer = document.getElementById('leagueTabsContainer');
+        const leagueContentContainer = document.getElementById('leagueContentContainer');
+        const addMatchForm = document.getElementById('addMatchForm');
         const confirmDeleteButton = document.getElementById('confirmDeleteButton');
         const cancelDeleteButton = document.getElementById('cancelDeleteButton');
         const player1Select = document.getElementById('player1Select');
@@ -278,7 +313,8 @@
         let db, auth, userId;
         let itemToDelete = null;
         let players = [], leagues = [], matches = [];
-        
+        let chartInstances = {};
+
         async function startApp() {
             try {
                 const app = initializeApp(firebaseConfig);
@@ -321,45 +357,48 @@
         }
 
         function renderAllLeagueData() {
-            if (!leagues.length || !players.length) return;
+            if (!leagues.length) return;
 
+            const activeLeague = document.querySelector('.league-tab-button.active')?.dataset.league || leagues[0];
             leagueTabsContainer.innerHTML = '';
             leagueContentContainer.innerHTML = '';
 
-            leagues.forEach((league, index) => {
-                // Create Tab Button
+            leagues.forEach(league => {
                 const tabButton = document.createElement('button');
                 tabButton.className = 'league-tab-button';
                 tabButton.textContent = league;
                 tabButton.dataset.league = league;
-                if (index === 0) tabButton.classList.add('active');
+                if (league === activeLeague) tabButton.classList.add('active');
                 tabButton.onclick = () => switchLeagueTab(league);
                 leagueTabsContainer.appendChild(tabButton);
 
-                // Create Content Div
                 const contentDiv = document.createElement('div');
                 contentDiv.id = `content-${league}`;
                 contentDiv.className = 'league-content';
-                if (index !== 0) contentDiv.classList.add('hidden');
+                if (league !== activeLeague) contentDiv.classList.add('hidden');
                 
                 const leagueMatches = matches.filter(m => m.league === league);
                 const leaguePlayers = [...new Set(leagueMatches.flatMap(m => [m.player1Name, m.player2Name]))];
                 
-                // Standings
                 const standings = calculateLeagueStats(leagueMatches, leaguePlayers);
                 contentDiv.innerHTML += generateStandingsHTML(league, standings);
-
-                // Top Players
+                
                 const { topScorers, topDefenders } = calculateTopPlayers(leagueMatches, leaguePlayers);
                 contentDiv.innerHTML += generateTopPlayersHTML(topScorers, topDefenders);
 
                 leagueContentContainer.appendChild(contentDiv);
+                
+                if (standings.length > 0) {
+                    renderChart(league, standings);
+                }
             });
+             updateH2HDropdowns();
         }
 
         function switchLeagueTab(leagueName) {
             document.querySelectorAll('.league-tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.league === leagueName));
             document.querySelectorAll('.league-content').forEach(content => content.classList.toggle('hidden', content.id !== `content-${leagueName}`));
+            updateH2HDropdowns();
         }
 
         function calculateLeagueStats(leagueMatches, leaguePlayers) {
@@ -370,6 +409,7 @@
 
             leagueMatches.forEach(m => {
                 const s1 = stats[m.player1Name], s2 = stats[m.player2Name];
+                if (!s1 || !s2) return;
                 s1.played++; s2.played++;
                 s1.gf += m.player1Goals; s1.ga += m.player2Goals;
                 s2.gf += m.player2Goals; s2.ga += m.player1Goals;
@@ -391,31 +431,58 @@
         }
 
         function generateStandingsHTML(leagueName, standings) {
-             if (standings.length === 0) return '';
+             if (standings.length === 0) return `<div class="standings-section"><h2 class="text-2xl">${leagueName} Standings</h2><p>No matches played yet in this league.</p></div>`;
              return `<div class="standings-section">
                 <h2 class="text-2xl mb-4">${leagueName} Standings</h2>
+                <canvas id="chart-${leagueName}" class="mb-4"></canvas>
                 <table class="w-full"><thead><tr>
                     <th>Rank</th><th>Player</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
                 </tr></thead><tbody>
                 ${standings.map((p, i) => `
                     <tr class="${getRankClass(i)}">
-                        <td>${i + 1}</td><td>${p.player}</td><td>${p.played}</td><td>${p.wins}</td>
+                        <td>${i + 1}</td><td class="player-name-link" data-player-name="${p.player}">${p.player}</td><td>${p.played}</td><td>${p.wins}</td>
                         <td>${p.draws}</td><td>${p.losses}</td><td>${p.gf}</td>
                         <td>${p.ga}</td><td>${p.gd}</td><td class="font-bold">${p.points}</td>
                     </tr>`).join('')}
                 </tbody></table></div>`;
         }
 
+        function renderChart(leagueName, standings) {
+            const ctx = document.getElementById(`chart-${leagueName}`).getContext('2d');
+            if (chartInstances[leagueName]) {
+                chartInstances[leagueName].destroy();
+            }
+            chartInstances[leagueName] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: standings.map(p => p.player),
+                    datasets: [{
+                        label: 'Points',
+                        data: standings.map(p => p.points),
+                        backgroundColor: standings.map((_, i) => getRankClass(i) ? getRankClass(i).includes('gold') ? '#FFD700' : getRankClass(i).includes('silver') ? '#C0C0C0' : '#CD7F32' : '#58a6ff'),
+                        borderColor: '#30363d',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: { y: { beginAtZero: true, ticks: { color: '#c9d1d9' } }, x: { ticks: { color: '#c9d1d9' } } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+        
         function calculateTopPlayers(leagueMatches, leaguePlayers) {
             const stats = {};
-            leaguePlayers.forEach(p => { stats[p] = { player: p, gf: 0, ga: 0 }; });
+            leaguePlayers.forEach(p => { stats[p] = { player: p, played: 0, gf: 0, ga: 0 }; });
             leagueMatches.forEach(m => {
+                stats[m.player1Name].played++;
+                stats[m.player2Name].played++;
                 stats[m.player1Name].gf += m.player1Goals;
                 stats[m.player1Name].ga += m.player2Goals;
                 stats[m.player2Name].gf += m.player2Goals;
                 stats[m.player2Name].ga += m.player1Goals;
             });
-            const allStats = Object.values(stats);
+            const allStats = Object.values(stats).filter(p => p.played > 0);
             const topScorers = [...allStats].sort((a,b) => b.gf - a.gf).slice(0, 3);
             const topDefenders = [...allStats].sort((a,b) => a.ga - b.ga).slice(0, 3);
             return { topScorers, topDefenders };
@@ -426,16 +493,28 @@
                 <div class="stats-section flex-1">
                     <h2 class="text-2xl mb-4">Top Goal Scorers</h2>
                     <table><thead><tr><th>Rank</th><th>Player</th><th>Goals</th></tr></thead><tbody>
-                        ${topScorers.map((p, i) => `<tr><td>${i+1}</td><td>${p.player}</td><td class="font-bold">${p.gf}</td></tr>`).join('')}
+                        ${topScorers.map((p, i) => `<tr><td>${i+1}</td><td class="player-name-link" data-player-name="${p.player}">${p.player}</td><td class="font-bold">${p.gf}</td></tr>`).join('')}
                     </tbody></table>
                 </div>
                 <div class="stats-section flex-1">
                     <h2 class="text-2xl mb-4">Top Defenders</h2>
                     <table><thead><tr><th>Rank</th><th>Player</th><th>Goals Against</th></tr></thead><tbody>
-                        ${topDefenders.map((p, i) => `<tr><td>${i+1}</td><td>${p.player}</td><td class="font-bold">${p.ga}</td></tr>`).join('')}
+                        ${topDefenders.map((p, i) => `<tr><td>${i+1}</td><td class="player-name-link" data-player-name="${p.player}">${p.player}</td><td class="font-bold">${p.ga}</td></tr>`).join('')}
                     </tbody></table>
                 </div>
             </div>`;
+        }
+
+        function renderMatchList() {
+            const isAdmin = userId === adminUID;
+            matchList.innerHTML = [...matches].sort((a,b) => b.timestamp - a.timestamp).map(m => `
+                <div class="match-item ${m.isMOTW ? 'match-of-the-week' : ''}">
+                    <span>${m.league}: ${m.player1Name} <b>${m.player1Goals}</b> - <b>${m.player2Goals}</b> ${m.player2Name}</span>
+                    <div class="flex items-center">
+                        ${isAdmin ? `<button class="star-btn ${m.isMOTW ? 'active' : ''}" data-id="${m.id}" title="Match of the Week">★</button>` : ''}
+                        ${isAdmin ? `<button data-id="${m.id}" data-type="match" class="delete-item-btn"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>` : ''}
+                    </div>
+                </div>`).join('') || '<p>No matches in the archive.</p>';
         }
 
         function showTab(tabId) {
@@ -456,15 +535,114 @@
             leagueSelect.innerHTML = `<option value="">Select League</option>${leagues.map(l => `<option value="${l}">${l}</option>`).join('')}`;
             leagueListContainer.innerHTML = leagues.map(l => `<div class="league-item"><span>${l}</span><button data-name="${l}" data-type="league" class="delete-item-btn"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button></div>`).join('') || '<p>No leagues added yet.</p>';
         }
-
-        function renderMatchList() {
-            const isAdmin = userId === adminUID;
-            matchList.innerHTML = [...matches].sort((a,b) => b.timestamp - a.timestamp).map(m => `
-                <div class="match-item">
-                    <span>${m.league}: ${m.player1Name} <b>${m.player1Goals}</b> - <b>${m.player2Goals}</b> ${m.player2Name}</span>
-                    ${isAdmin ? `<button data-id="${m.id}" data-type="match" class="delete-item-btn"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>` : ''}
-                </div>`).join('') || '<p>No matches in the archive.</p>';
+        
+        function updateH2HDropdowns() {
+            const activeLeague = document.querySelector('.league-tab-button.active')?.dataset.league;
+            if (!activeLeague) return;
+            const leagueMatches = matches.filter(m => m.league === activeLeague);
+            const leaguePlayers = [...new Set(leagueMatches.flatMap(m => [m.player1Name, m.player2Name]))].sort();
+            const opts = leaguePlayers.map(p => `<option value="${p}">${p}</option>`).join('');
+            h2hPlayer1Select.innerHTML = `<option value="">Select Player 1</option>${opts}`;
+            h2hPlayer2Select.innerHTML = `<option value="">Select Player 2</option>${opts}`;
         }
+
+        h2hButton.addEventListener('click', () => {
+            const p1 = h2hPlayer1Select.value;
+            const p2 = h2hPlayer2Select.value;
+            if (!p1 || !p2 || p1 === p2) {
+                h2hResult.innerHTML = 'Please select two different players.';
+                return;
+            }
+            const h2hMatches = matches.filter(m => (m.player1Name === p1 && m.player2Name === p2) || (m.player1Name === p2 && m.player2Name === p1));
+            let p1Wins = 0, p2Wins = 0, draws = 0;
+            h2hMatches.forEach(m => {
+                if (m.player1Goals === m.player2Goals) draws++;
+                else if ((m.player1Name === p1 && m.player1Goals > m.player2Goals) || (m.player2Name === p1 && m.player2Goals > m.player1Goals)) p1Wins++;
+                else p2Wins++;
+            });
+            h2hResult.innerHTML = `<p class="font-bold text-lg">${p1} ${p1Wins} - ${draws} - ${p2Wins} ${p2}</p>`;
+        });
+
+        document.addEventListener('click', e => {
+            const playerLink = e.target.closest('.player-name-link');
+            if (playerLink) {
+                const playerName = playerLink.dataset.playerName;
+                showPlayerProfile(playerName);
+            }
+
+            const starButton = e.target.closest('.star-btn');
+            if(starButton) {
+                toggleMOTW(starButton.dataset.id);
+            }
+        });
+
+        async function toggleMOTW(matchId) {
+            const batch = writeBatch(db);
+            matches.forEach(match => {
+                const docRef = doc(db, 'matches', match.id);
+                if (match.id === matchId) {
+                    batch.update(docRef, { isMOTW: !match.isMOTW }); 
+                } else if (match.isMOTW) {
+                    batch.update(docRef, { isMOTW: false });
+                }
+            });
+            await batch.commit();
+        }
+
+        function showPlayerProfile(playerName) {
+            const playerMatches = matches.filter(m => m.player1Name === playerName || m.player2Name === playerName);
+            let wins = 0, losses = 0, draws = 0, gf = 0, ga = 0, biggestWin = { diff: 0, score: 'N/A' };
+
+            playerMatches.forEach(m => {
+                const isPlayer1 = m.player1Name === playerName;
+                const playerGoals = isPlayer1 ? m.player1Goals : m.player2Goals;
+                const oppGoals = isPlayer1 ? m.player2Goals : m.player1Goals;
+                gf += playerGoals;
+                ga += oppGoals;
+                if (playerGoals > oppGoals) {
+                    wins++;
+                    if (playerGoals - oppGoals > biggestWin.diff) {
+                        biggestWin = { diff: playerGoals - oppGoals, score: `${playerGoals} - ${oppGoals}` };
+                    }
+                }
+                else if (oppGoals > playerGoals) losses++;
+                else draws++;
+            });
+
+            const played = playerMatches.length;
+            const winRate = played ? ((wins / played) * 100).toFixed(1) : 0;
+            const gpg = played ? (gf / played).toFixed(2) : 0;
+            
+            playerProfileContent.innerHTML = `
+                <div class="text-left">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-3xl mb-4">${playerName}</h2>
+                        <button id="closeProfileBtn" class="bg-gray-700 hover:bg-gray-600">Close</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <p><strong>Win Rate:</strong> ${winRate}%</p>
+                        <p><strong>Played:</strong> ${played}</p>
+                        <p><strong>Record (W-D-L):</strong> ${wins}-${draws}-${losses}</p>
+                        <p><strong>Goals per Game:</strong> ${gpg}</p>
+                        <p><strong>Goals For:</strong> ${gf}</p>
+                        <p><strong>Goals Against:</strong> ${ga}</p>
+                        <p><strong>Biggest Win:</strong> ${biggestWin.score}</p>
+                    </div>
+                    <h3 class="text-xl mb-2">Match History</h3>
+                    <div class="max-h-60 overflow-y-auto">
+                        ${playerMatches.map(m => `
+                            <div class="match-item">
+                                <span>${m.league}: ${m.player1Name} <b>${m.player1Goals}</b> - <b>${m.player2Goals}</b> ${m.player2Name}</span>
+                            </div>`).join('') || '<p>No matches played.</p>'}
+                    </div>
+                </div>`;
+            playerProfileModal.style.display = 'flex';
+            document.getElementById('closeProfileBtn').onclick = () => playerProfileModal.style.display = 'none';
+        }
+
+        playerProfileModal.addEventListener('click', e => {
+            if (e.target === playerProfileModal) playerProfileModal.style.display = 'none';
+        });
 
         addPlayerForm.addEventListener('submit', async e => {
             e.preventDefault();
@@ -489,7 +667,7 @@
             const league = leagueSelect.value, p1 = player1Select.value, g1 = parseInt(document.getElementById('player1Goals').value),
                   p2 = player2Select.value, g2 = parseInt(document.getElementById('player2Goals').value);
             if (league && p1 && p2 && !isNaN(g1) && !isNaN(g2) && p1 !== p2) {
-                await addDoc(collection(db, 'matches'), { league, player1Name: p1, player1Goals: g1, player2Name: p2, player2Goals: g2, timestamp: Date.now() });
+                await addDoc(collection(db, 'matches'), { league, player1Name: p1, player1Goals: g1, player2Name: p2, player2Goals: g2, timestamp: Date.now(), isMOTW: false });
                 addMatchForm.reset();
             }
         });
