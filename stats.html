@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overall Stats - FC 2025 League Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117;
+            background-image: url('https://www.transparenttextures.com/patterns/dark-matter.png');
+            color: #c9d1d9;
+        }
+        .container {
+            max-width: 90%;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: rgba(22, 27, 34, 0.85);
+            border-radius: 1rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        h1 {
+            color: #58a6ff;
+            text-align: center;
+            font-weight: 700;
+        }
+        .stat-card {
+            background-color: rgba(13, 17, 23, 0.9);
+            padding: 2rem;
+            border-radius: 0.75rem;
+            border: 1px solid #30363d;
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 1rem;
+            color: #8b949e;
+        }
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #58a6ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-4xl font-extrabold">Overall Statistics</h1>
+        <p class="text-center mt-2"><a href="index.html" class="text-blue-400 hover:underline">← Back to Main Page</a></p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+            <div class="stat-card">
+                <p class="stat-label">Total Matches Played</p>
+                <p id="totalMatches" class="stat-value">0</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-label">Total Goals Scored</p>
+                <p id="totalGoals" class="stat-value">0</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-label">Average Goals Per Match</p>
+                <p id="avgGoals" class="stat-value">0</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-label">Most Competitive Rivalry</p>
+                <p id="topRivalry" class="stat-value">N/A</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBvXdFou9yUlERH-iaICi6JjNChw1rC2O0",
+          authDomain: "fun-league-6edd6.firebaseapp.com",
+          projectId: "fun-league-6edd6",
+          storageBucket: "fun-league-6edd6.appspot.com",
+          messagingSenderId: "132854098604",
+          appId: "1:132854098604:web:0c0e829ac99624dac38d09",
+          measurementId: "G-QJCY28B9HM"
+        };
+        
+        const totalMatchesEl = document.getElementById('totalMatches');
+        const totalGoalsEl = document.getElementById('totalGoals');
+        const avgGoalsEl = document.getElementById('avgGoals');
+        const topRivalryEl = document.getElementById('topRivalry');
+        
+        async function startApp() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+                onSnapshot(collection(db, 'matches'), snapshot => {
+                    const matches = snapshot.docs.map(doc => doc.data());
+                    calculateOverallStats(matches);
+                });
+            } catch (error) {
+                console.error("Firebase initialization error:", error);
+            }
+        }
+
+        function calculateOverallStats(matches) {
+            const totalMatches = matches.length;
+            if (totalMatches === 0) return;
+
+            const totalGoals = matches.reduce((sum, match) => sum + match.player1Goals + match.player2Goals, 0);
+            const avgGoals = (totalGoals / totalMatches).toFixed(2);
+
+            const rivalries = {};
+            matches.forEach(match => {
+                const key = [match.player1Name, match.player2Name].sort().join('-');
+                rivalries[key] = (rivalries[key] || 0) + 1;
+            });
+
+            let topRivalry = 'N/A';
+            let maxGames = 0;
+            for (const key in rivalries) {
+                if (rivalries[key] > maxGames) {
+                    maxGames = rivalries[key];
+                    topRivalry = key.replace('-', ' vs ');
+                }
+            }
+
+            totalMatchesEl.textContent = totalMatches;
+            totalGoalsEl.textContent = totalGoals;
+            avgGoalsEl.textContent = avgGoals;
+            topRivalryEl.innerHTML = `${topRivalry} <span class="text-lg text-gray-400 block">${maxGames} games</span>`;
+        }
+
+        document.addEventListener('DOMContentLoaded', startApp);
+    </script>
+</body>
+</html>
