@@ -39,6 +39,7 @@
             border: 1px solid #30363d;
             backdrop-filter: blur(5px);
             -webkit-backdrop-filter: blur(5px);
+            animation: fadeIn 0.5s ease-in-out forwards;
         }
         .standings-section h2, .archive-section h2, .stats-section h2 {
             margin-top: 0;
@@ -130,11 +131,12 @@
             border: 1px solid #ffd700;
             background: linear-gradient(145deg, rgba(255, 215, 0, 0.05), rgba(255, 215, 0, 0.15));
         }
-        #adminLink {
+        #adminLink, #statsLink {
             position: absolute;
             top: 2.5rem;
-            right: 2.5rem;
         }
+        #adminLink { right: 2.5rem; }
+        #statsLink { right: 10.5rem; }
         #h2hButton {
             background-image: linear-gradient(to right, #0969da, #58a6ff);
             border: none;
@@ -164,16 +166,21 @@
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
         }
-        .table-container::-webkit-scrollbar {
-            height: 8px;
+        .table-container::-webkit-scrollbar { height: 8px; }
+        .table-container::-webkit-scrollbar-track { background: #1f2730; border-radius: 10px; }
+        .table-container::-webkit-scrollbar-thumb { background: #58a6ff; border-radius: 10px; }
+        
+        .league-content {
+            animation: crossFade 0.4s ease-in-out;
         }
-        .table-container::-webkit-scrollbar-track {
-            background: #1f2730;
-            border-radius: 10px;
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .table-container::-webkit-scrollbar-thumb {
-            background: #58a6ff;
-            border-radius: 10px;
+        @keyframes crossFade {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         /* Mobile Responsive Styles */
@@ -186,11 +193,11 @@
             h1 {
                 font-size: 1.875rem; /* text-3xl */
             }
-            #adminLink {
+            #adminLink, #statsLink {
                 position: static;
                 display: block;
                 width: fit-content;
-                margin: 1rem auto 0;
+                margin: 0.5rem auto;
             }
             #h2hResult {
                 grid-template-columns: 1fr;
@@ -203,6 +210,7 @@
 <body>
 
     <div class="container relative">
+        <a id="statsLink" href="stats.html" class="bg-purple-600 hover:bg-purple-500 p-2 rounded-lg text-white no-underline">Overall Stats</a>
         <a id="adminLink" href="admin.html" class="hidden bg-blue-600 hover:bg-blue-500 p-2 rounded-lg text-white no-underline">Admin Panel</a>
         <h1 class="text-4xl font-extrabold">FC 2025 League Tracker</h1>
         <p class="text-center text-sm mt-2"><span id="userIdDisplay">Loading...</span></p>
@@ -362,8 +370,9 @@
         function calculateLeagueStats(leagueMatches, leaguePlayers) {
             const stats = {};
             leaguePlayers.forEach(p => {
-                stats[p] = { player: p, played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0, gd: 0, points: 0 };
+                stats[p] = { player: p, played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0, gd: 0, points: 0, streak: '' };
             });
+
             leagueMatches.forEach(m => {
                 const s1 = stats[m.player1Name], s2 = stats[m.player2Name];
                 if (!s1 || !s2) return;
@@ -376,6 +385,22 @@
                 else if (m.player2Goals > m.player1Goals) { s2.wins++; s2.points += 3; s1.losses++; }
                 else { s1.draws++; s1.points++; s2.draws++; s2.points++; }
             });
+
+            // Calculate Streaks
+            leaguePlayers.forEach(p => {
+                const playerMatches = leagueMatches.filter(m => m.player1Name === p || m.player2Name === p).slice(-3);
+                if (playerMatches.length === 3) {
+                    const results = playerMatches.map(m => {
+                        const isP1 = m.player1Name === p;
+                        const pGoals = isP1 ? m.player1Goals : m.player2Goals;
+                        const oGoals = isP1 ? m.player2Goals : m.player1Goals;
+                        return pGoals > oGoals ? 'W' : pGoals < oGoals ? 'L' : 'D';
+                    });
+                    if (results.every(r => r === 'W')) stats[p].streak = '🔥';
+                    if (results.every(r => r === 'L')) stats[p].streak = '❄️';
+                }
+            });
+
             return Object.values(stats).sort((a, b) => b.points - a.points || b.gd - a.gd || b.gf - a.gf);
         }
 
@@ -396,7 +421,9 @@
                     </tr></thead><tbody>
                     ${standings.map((p, i) => `
                         <tr class="${getRankClass(i)}">
-                            <td>${i + 1}</td><td class="player-name-link" data-player-name="${p.player}">${p.player}</td><td>${p.played}</td><td>${p.wins}</td>
+                            <td>${i + 1}</td>
+                            <td class="player-name-link" data-player-name="${p.player}">${p.player} <span class="streak">${p.streak}</span></td>
+                            <td>${p.played}</td><td>${p.wins}</td>
                             <td>${p.draws}</td><td>${p.losses}</td><td>${p.gf}</td>
                             <td>${p.ga}</td><td>${p.gd}</td><td class="font-bold">${p.points}</td>
                         </tr>`).join('')}
