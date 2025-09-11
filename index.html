@@ -174,23 +174,10 @@
 
         <div class="tab-buttons">
             <button id="matchesTabButton" class="tab-button active">Matches</button>
-            <button id="setupTabButton" class="tab-button">Setup</button>
+            <button id="adminTabButton" class="tab-button hidden">Admin</button>
         </div>
         
         <div id="matchesTab" class="tab-content">
-            <div class="form-section">
-                <h2 class="text-2xl mb-4">Add a Match Result</h2>
-                <form id="addMatchForm">
-                    <select id="leagueSelect" required class="w-full"></select>
-                    <select id="player1Select" required class="w-full"></select>
-                    <input type="number" id="player1Goals" placeholder="Goals" required class="w-full">
-                    <span class="text-center font-bold text-gray-500 text-lg">vs</span>
-                    <input type="number" id="player2Goals" placeholder="Goals" required class="w-full">
-                    <select id="player2Select" required class="w-full"></select>
-                    <button type="submit" class="w-full">Add Match</button>
-                </form>
-            </div>
-            
             <div class="standings-section">
                 <h2 class="text-2xl mb-4">League Standings</h2>
                 <table class="w-full" id="standingsTable">
@@ -223,7 +210,19 @@
             </div>
         </div>
 
-        <div id="setupTab" class="tab-content hidden">
+        <div id="adminTab" class="tab-content hidden">
+            <div class="form-section">
+                <h2 class="text-2xl mb-4">Add a Match Result</h2>
+                <form id="addMatchForm">
+                    <select id="leagueSelect" required class="w-full"></select>
+                    <select id="player1Select" required class="w-full"></select>
+                    <input type="number" id="player1Goals" placeholder="Goals" required class="w-full">
+                    <span class="text-center font-bold text-gray-500 text-lg">vs</span>
+                    <input type="number" id="player2Goals" placeholder="Goals" required class="w-full">
+                    <select id="player2Select" required class="w-full"></select>
+                    <button type="submit" class="w-full">Add Match</button>
+                </form>
+            </div>
             <div class="form-section">
                 <h2 class="text-2xl mb-4">Add a New Player</h2>
                 <form id="addPlayerForm" class="flex flex-col gap-4">
@@ -271,6 +270,9 @@
           measurementId: "G-QJCY28B9HM"
         };
         
+        // !!! IMPORTANT: Paste your admin User ID here !!!
+        const adminUID = "7ss4Z12tDkgCQB1pevK6gKR1WpI3";
+
         // DOM element references
         const addMatchForm = document.getElementById('addMatchForm');
         const standingsTableBody = document.getElementById('standingsTableBody');
@@ -288,7 +290,7 @@
         const modalText = document.getElementById('modalText');
         const userIdDisplay = document.getElementById('userIdDisplay');
         const matchesTabButton = document.getElementById('matchesTabButton');
-        const setupTabButton = document.getElementById('setupTabButton');
+        const adminTabButton = document.getElementById('adminTabButton');
         
         let db;
         let auth;
@@ -313,9 +315,18 @@
                     if (user) {
                         userId = user.uid;
                         userIdDisplay.textContent = userId;
+                        
+                        // Check if the current user is the admin
+                        if (userId === adminUID) {
+                            adminTabButton.classList.remove('hidden');
+                        } else {
+                            adminTabButton.classList.add('hidden');
+                        }
+
                         setupListeners();
                     } else {
                         userIdDisplay.textContent = "Signed Out";
+                        adminTabButton.classList.add('hidden'); // Hide admin tab if signed out
                     }
                 });
 
@@ -326,7 +337,6 @@
         }
         
         function setupListeners() {
-            // UPDATED PATH
             onSnapshot(collection(db, 'players'), (snapshot) => {
                 players = [];
                 snapshot.forEach((doc) => {
@@ -335,7 +345,6 @@
                 renderPlayerLists();
             }, (error) => console.error("Error fetching players: ", error));
             
-            // UPDATED PATH
             onSnapshot(collection(db, 'leagues'), (snapshot) => {
                 leagues = [];
                 snapshot.forEach((doc) => {
@@ -344,7 +353,6 @@
                 renderLeagueLists();
             }, (error) => console.error("Error fetching leagues: ", error));
             
-            // UPDATED PATH
             const q = query(collection(db, 'matches'));
             onSnapshot(q, (snapshot) => {
                 matches = [];
@@ -528,13 +536,11 @@
             });
         }
 
-        // Add a new player
         addPlayerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const playerName = document.getElementById('playerNameInput').value.trim();
             if (playerName && !players.includes(playerName)) {
                 try {
-                    // UPDATED PATH
                     await addDoc(collection(db, 'players'), { name: playerName, owner: userId });
                     addPlayerForm.reset();
                 } catch (e) {
@@ -543,13 +549,11 @@
             }
         });
 
-        // Add a new league
         addLeagueForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const leagueName = document.getElementById('leagueNameInput').value.trim();
             if (leagueName && !leagues.includes(leagueName)) {
                 try {
-                    // UPDATED PATH
                     await addDoc(collection(db, 'leagues'), { name: leagueName, owner: userId });
                     addLeagueForm.reset();
                 } catch (e) {
@@ -558,7 +562,6 @@
             }
         });
 
-        // Add a new match
         addMatchForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const league = leagueSelect.value;
@@ -570,7 +573,6 @@
             if (league && player1Name && player2Name && !isNaN(player1Goals) && !isNaN(player2Goals) && player1Name !== player2Name) {
                 const newMatch = { league, player1Name, player1Goals, player2Name, player2Goals, timestamp: Date.now() };
                 try {
-                    // UPDATED PATH
                     await addDoc(collection(db, 'matches'), newMatch);
                     addMatchForm.reset();
                 } catch (e) {
@@ -596,15 +598,12 @@
             if (itemToDelete) {
                 try {
                     if (itemToDelete.type === 'match') {
-                        // UPDATED PATH
                         await deleteDoc(doc(db, 'matches', itemToDelete.id));
                     } else if (itemToDelete.type === 'player') {
-                        // UPDATED PATH
                         const playerQuery = query(collection(db, 'players'), where("name", "==", itemToDelete.name));
                         const snapshot = await getDocs(playerQuery);
                         snapshot.forEach(async (doc) => await deleteDoc(doc.ref));
                     } else if (itemToDelete.type === 'league') {
-                        // UPDATED PATH
                         const leagueQuery = query(collection(db, 'leagues'), where("name", "==", itemToDelete.name));
                         const snapshot = await getDocs(leagueQuery);
                         snapshot.forEach(async (doc) => await deleteDoc(doc.ref));
@@ -623,7 +622,7 @@
         });
 
         matchesTabButton.addEventListener('click', () => showTab('matches'));
-        setupTabButton.addEventListener('click', () => showTab('setup'));
+        adminTabButton.addEventListener('click', () => showTab('admin'));
         
         document.addEventListener('DOMContentLoaded', () => {
             startApp();
