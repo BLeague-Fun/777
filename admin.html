@@ -127,6 +127,12 @@
             <p class="text-center mt-2"><a href="index.html" class="text-green-500 hover:underline">← Back to Main Page</a></p>
 
             <div class="form-section">
+                <h2 class="text-2xl mb-4">Data Migration</h2>
+                <p class="mb-4 text-sm text-gray-600">If you have matches from the old system that are not showing up, click this button to update them to the new format. This is a one-time action.</p>
+                <button id="migrateDataButton" class="w-full bg-yellow-500 hover:bg-yellow-600">Migrate Old Match Data</button>
+            </div>
+
+            <div class="form-section">
                 <h2 class="text-2xl mb-4">Pending Games</h2>
                 <div id="pendingGamesList" class="max-h-96 overflow-y-auto"></div>
             </div>
@@ -205,12 +211,13 @@
           measurementId: "G-QJCY28B9HM"
         };
         
-        const adminUID = "ujMJ9cUFxxguzNmezN6iF2TQNN52";
+        const adminUID = "PASTE_YOUR_ADMIN_USER_ID_HERE";
 
         const loginSection = document.getElementById('loginSection');
         const loginForm = document.getElementById('loginForm');
         const loginError = document.getElementById('loginError');
         const adminControls = document.getElementById('adminControls');
+        const migrateDataButton = document.getElementById('migrateDataButton');
         
         const createLeagueForm = document.getElementById('createLeagueForm');
         const leagueNameInput = document.getElementById('leagueNameInput');
@@ -284,7 +291,6 @@
             onSnapshot(collection(db, 'matches'), snapshot => {
                 matches = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderPendingGamesList();
-                renderClubAssignments();
             });
             onSnapshot(collection(db, 'clubAssignments'), snapshot => {
                 clubAssignments = {};
@@ -410,6 +416,39 @@
                 enterResultModal.style.display = 'none';
             }
         });
+
+        async function migrateOldMatches() {
+            if (!confirm("This will update old matches to the new format. This is a safe, one-time action. Continue?")) return;
+            
+            try {
+                const snapshot = await getDocs(collection(db, 'matches'));
+                const batch = writeBatch(db);
+                let updates = 0;
+
+                snapshot.forEach(docRef => {
+                    const data = docRef.data();
+                    if (!data.status) {
+                        batch.update(docRef.ref, { 
+                            status: 'completed',
+                            player1Goals: data.player1Goals ?? 0, 
+                            player2Goals: data.player2Goals ?? 0 
+                        });
+                        updates++;
+                    }
+                });
+
+                if (updates > 0) {
+                    await batch.commit();
+                    alert(`${updates} old match(es) have been successfully updated!`);
+                } else {
+                    alert('No old matches found to update.');
+                }
+            } catch (error) {
+                console.error("Data migration failed:", error);
+                alert("An error occurred during migration. Check the console.");
+            }
+        }
+        migrateDataButton.addEventListener('click', migrateOldMatches);
 
         document.addEventListener('click', async (e) => {
             const deleteBtn = e.target.closest('.delete-item-btn');
