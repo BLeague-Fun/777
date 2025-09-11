@@ -39,7 +39,7 @@
         }
         #addMatchForm {
             display: grid;
-            grid-template-columns: 1fr 0.5fr 0.2fr 0.5fr 1fr;
+            grid-template-columns: 1fr 1fr 0.2fr 1fr 1fr 1fr;
             gap: 0.75rem;
             align-items: center;
         }
@@ -210,16 +210,14 @@
                         </tr>
                     </thead>
                     <tbody id="standingsTableBody">
-                        <!-- Standings will be populated by JavaScript -->
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
 
             <div class="archive-section">
                 <h2 class="text-2xl mb-4">Match Archive</h2>
                 <div id="matchList">
-                    <!-- Matches will be populated by JavaScript -->
-                </div>
+                    </div>
             </div>
         </div>
 
@@ -245,7 +243,6 @@
 
     </div>
 
-    <!-- The Confirmation Modal -->
     <div id="confirmationModal" class="modal">
         <div class="modal-content">
             <p id="modalText"></p>
@@ -258,10 +255,9 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+        
         // IMPORTANT: Global variables for Firebase setup
         const appId = "fun-league-6edd6";
         
@@ -269,13 +265,11 @@
           apiKey: "AIzaSyBvXdFou9yUlERH-iaICi6JjNChw1rC2O0",
           authDomain: "fun-league-6edd6.firebaseapp.com",
           projectId: "fun-league-6edd6",
-          storageBucket: "fun-league-6edd6.firebasestorage.app",
+          storageBucket: "fun-league-6edd6.appspot.com",
           messagingSenderId: "132854098604",
           appId: "1:132854098604:web:0c0e829ac99624dac38d09",
           measurementId: "G-QJCY28B9HM"
         };
-        
-        const initialAuthToken = null;
         
         // DOM element references
         const addMatchForm = document.getElementById('addMatchForm');
@@ -295,8 +289,7 @@
         const userIdDisplay = document.getElementById('userIdDisplay');
         const matchesTabButton = document.getElementById('matchesTabButton');
         const setupTabButton = document.getElementById('setupTabButton');
-
-        setLogLevel('debug');
+        
         let db;
         let auth;
         let userId;
@@ -309,7 +302,7 @@
         let matches = [];
         
         // Initialize Firebase and set up listeners
-        async function initializeApp() {
+        async function startApp() {
             try {
                 const app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
@@ -409,7 +402,7 @@
                     <span class="text-base">${player}</span>
                     <button data-name="${player}" data-type="player" class="delete-item-btn">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                         </svg>
                     </button>
                 `;
@@ -441,7 +434,7 @@
                     <span class="text-base">${league}</span>
                     <button data-name="${league}" data-type="league" class="delete-item-btn">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                         </svg>
                     </button>
                 `;
@@ -452,45 +445,41 @@
         function calculateStandings() {
             const playerStats = {};
 
+            players.forEach(player => {
+                playerStats[player] = {
+                    player: player, played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0, gd: 0, points: 0
+                };
+            });
+
             matches.forEach(match => {
                 const { player1Name, player1Goals, player2Name, player2Goals } = match;
 
-                // Initialize players if they don't exist
-                if (!playerStats[player1Name]) {
-                    playerStats[player1Name] = {
-                        player: player1Name, played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0, gd: 0, points: 0
-                    };
-                }
-                if (!playerStats[player2Name]) {
-                    playerStats[player2Name] = {
-                        player: player2Name, played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0, gd: 0, points: 0
-                    };
-                }
-
                 // Update common stats for both players
-                playerStats[player1Name].played++;
-                playerStats[player2Name].played++;
-                playerStats[player1Name].gf += player1Goals;
-                playerStats[player1Name].ga += player2Goals;
-                playerStats[player2Name].gf += player2Goals;
-                playerStats[player2Name].ga += player1Goals;
-                playerStats[player1Name].gd = playerStats[player1Name].gf - playerStats[player1Name].ga;
-                playerStats[player2Name].gd = playerStats[player2Name].gf - playerStats[player2Name].ga;
+                if (playerStats[player1Name] && playerStats[player2Name]) {
+                    playerStats[player1Name].played++;
+                    playerStats[player2Name].played++;
+                    playerStats[player1Name].gf += player1Goals;
+                    playerStats[player1Name].ga += player2Goals;
+                    playerStats[player2Name].gf += player2Goals;
+                    playerStats[player2Name].ga += player1Goals;
+                    playerStats[player1Name].gd = playerStats[player1Name].gf - playerStats[player1Name].ga;
+                    playerStats[player2Name].gd = playerStats[player2Name].gf - playerStats[player2Name].ga;
 
-                // Determine winner and update points
-                if (player1Goals > player2Goals) {
-                    playerStats[player1Name].wins++;
-                    playerStats[player1Name].points += 3;
-                    playerStats[player2Name].losses++;
-                } else if (player2Goals > player1Goals) {
-                    playerStats[player2Name].wins++;
-                    playerStats[player2Name].points += 3;
-                    playerStats[player1Name].losses++;
-                } else {
-                    playerStats[player1Name].draws++;
-                    playerStats[player1Name].points += 1;
-                    playerStats[player2Name].draws++;
-                    playerStats[player2Name].points += 1;
+                    // Determine winner and update points
+                    if (player1Goals > player2Goals) {
+                        playerStats[player1Name].wins++;
+                        playerStats[player1Name].points += 3;
+                        playerStats[player2Name].losses++;
+                    } else if (player2Goals > player1Goals) {
+                        playerStats[player2Name].wins++;
+                        playerStats[player2Name].points += 3;
+                        playerStats[player1Name].losses++;
+                    } else {
+                        playerStats[player1Name].draws++;
+                        playerStats[player1Name].points += 1;
+                        playerStats[player2Name].draws++;
+                        playerStats[player2Name].points += 1;
+                    }
                 }
             });
 
@@ -507,7 +496,7 @@
         function renderStandingsTable(standings) {
             standingsTableBody.innerHTML = '';
             if (standings.length === 0) {
-                standingsTableBody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-gray-400">No matches played yet.</td></tr>';
+                standingsTableBody.innerHTML = '<tr><td colspan="11" class="text-center py-4 text-gray-400">Add players and matches to see standings.</td></tr>';
                 return;
             }
 
@@ -537,14 +526,16 @@
                 return;
             }
 
-            matches.forEach((match) => {
+            const sortedMatches = [...matches].sort((a, b) => b.timestamp - a.timestamp);
+
+            sortedMatches.forEach((match) => {
                 const div = document.createElement('div');
                 div.className = 'match-item';
                 div.innerHTML = `
                     <span class="text-base">${match.league} League: ${match.player1Name} <span class="text-sm font-bold">${match.player1Goals}</span> vs <span class="text-sm font-bold">${match.player2Goals}</span> ${match.player2Name}</span>
                     <button data-id="${match.id}" data-type="match" class="delete-item-btn">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                         </svg>
                     </button>
                 `;
@@ -652,9 +643,9 @@
         setupTabButton.addEventListener('click', () => showTab('setup'));
         
         // Initial setup
-        window.onload = function() {
-            initializeApp();
-        };
+        document.addEventListener('DOMContentLoaded', () => {
+            startApp();
+        });
     </script>
 </body>
 </html>
