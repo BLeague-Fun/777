@@ -183,7 +183,17 @@
     <!-- Modals -->
     <div id="enterResultModal" class="modal"><div class="modal-content"></div></div>
     <div id="editMatchModal" class="modal"><div class="modal-content"></div></div>
-    <div id="fixtureOptionsModal" class="modal"><div class="modal-content"></div></div>
+    <div id="fixtureOptionsModal" class="modal">
+         <div class="modal-content">
+            <h2 class="text-2xl mb-4">Generate Fixtures</h2>
+            <p class="mb-6 text-center">Choose the format for this league.</p>
+            <div class="flex flex-col gap-4">
+                 <button id="generateSingleLeg" class="w-full">Single Game (Round Robin)</button>
+                 <button id="generateDoubleLeg" class="w-full">Home & Away (Double Round Robin)</button>
+                 <button type="button" class="cancel-button bg-gray-600 hover:bg-gray-500 text-white mt-4">Cancel</button>
+            </div>
+        </div>
+    </div>
     <div id="editPlayerModal" class="modal"><div class="modal-content"></div></div>
     <div id="editLeagueModal" class="modal"><div class="modal-content"></div></div>
     <div id="editClubModal" class="modal"><div class="modal-content"></div></div>
@@ -203,7 +213,7 @@
           measurementId: "G-QJCY28B9HM"
         };
         
-        const adminUID = "ujMJ9cUFxxguzNmezN6iF2TQNN52";
+        const adminUID = "PASTE_YOUR_ADMIN_USER_ID_HERE";
 
         const loginSection = document.getElementById('loginSection');
         const loginForm = document.getElementById('loginForm');
@@ -364,7 +374,7 @@
         }
 
         function renderCompletedGamesList() {
-             const completedMatches = matches.filter(m => m.status === 'completed' || (m.status === undefined && m.player1Goals !== undefined));
+             const completedMatches = matches.filter(m => m.status === 'completed');
             const matchesByLeague = completedMatches.reduce((acc, match) => {
                 (acc[match.league] = acc[match.league] || []).push(match);
                 return acc;
@@ -717,6 +727,15 @@
             const generateBtn = e.target.closest('.generate-fixtures-btn');
             if (generateBtn && !generateBtn.disabled) {
                 activeFixtureLeague = { leagueId: generateBtn.dataset.leagueId, leagueName: generateBtn.dataset.leagueName };
+                fixtureOptionsModal.querySelector('.modal-content').innerHTML = `
+                    <h2 class="text-2xl mb-4">Generate Fixtures</h2>
+                    <p class="mb-6 text-center">Choose the format for this league.</p>
+                    <div class="flex flex-col gap-4">
+                         <button id="generateSingleLeg" class="w-full button">Single Game (Round Robin)</button>
+                         <button id="generateDoubleLeg" class="w-full button">Home & Away (Double Round Robin)</button>
+                         <button type="button" class="cancel-button bg-gray-600 hover:bg-gray-500 text-white mt-4">Cancel</button>
+                    </div>
+                `;
                 fixtureOptionsModal.style.display = 'flex';
             }
             
@@ -773,10 +792,12 @@
             }
         });
         
-        document.querySelectorAll('.cancel-button').forEach(btn => btn.addEventListener('click', (e) => {
-            e.target.closest('.modal').style.display = 'none';
-        }));
-
+        document.body.addEventListener('click', (e) => {
+            if (e.target.matches('.cancel-button')) {
+                 e.target.closest('.modal').style.display = 'none';
+            }
+        });
+        
         document.addEventListener('DOMContentLoaded', startApp);
     </script>
 </body>
