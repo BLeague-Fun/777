@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Migration Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #333; }
+        .container { max-width: 600px; margin: 4rem auto; padding: 2rem; background-color: #fff; border-radius: 1rem; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1); }
+        h1 { color: #00b894; }
+        button { background-color: #00b894; color: white; font-weight: 500; cursor: pointer; padding: 1rem; border-radius: 0.5rem; width: 100%; transition: background-color 0.2s; }
+        button:hover { background-color: #00a884; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-3xl font-extrabold text-center">Club Data Migration Tool</h1>
+        <p class="my-4 text-center text-gray-600">
+            This tool will find all club names from your old "Club Assignments" and add them to the new "Clubs" database. This is a safe, one-time action needed to make your old data compatible with the new system.
+        </p>
+        <button id="migrateButton">Migrate Old Clubs</button>
+        <p id="statusMessage" class="text-center mt-4 font-bold"></p>
+        <p class="text-center mt-4"><a href="admin.html" class="text-green-500 hover:underline">← Go to Admin Panel</a></p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, writeBatch, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBvXdFou9yUlERH-iaICi6JjNChw1rC2O0",
+          authDomain: "fun-league-6edd6.firebaseapp.com",
+          projectId: "fun-league-6edd6",
+          storageBucket: "fun-league-6edd6.appspot.com",
+          messagingSenderId: "132854098604",
+          appId: "1:132854098604:web:0c0e829ac99624dac38d09",
+          measurementId: "G-QJCY28B9HM"
+        };
+        
+        const migrateButton = document.getElementById('migrateButton');
+        const statusMessage = document.getElementById('statusMessage');
+        
+        async function startMigration() {
+            migrateButton.disabled = true;
+            migrateButton.textContent = 'Migrating...';
+            statusMessage.textContent = '';
+
+            try {
+                const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+
+                // 1. Get all existing clubs to avoid duplicates
+                const clubsSnapshot = await getDocs(collection(db, 'clubs'));
+                const existingClubs = new Set(clubsSnapshot.docs.map(d => d.data().name));
+
+                // 2. Get all old club assignments
+                const assignmentsSnapshot = await getDocs(collection(db, 'clubAssignments'));
+                const uniqueClubNames = new Set();
+                assignmentsSnapshot.forEach(doc => {
+                    const assignments = doc.data();
+                    Object.values(assignments).forEach(clubName => {
+                        if (clubName && !existingClubs.has(clubName)) {
+                            uniqueClubNames.add(clubName);
+                        }
+                    });
+                });
+
+                if (uniqueClubNames.size === 0) {
+                    statusMessage.textContent = 'No new clubs found to migrate. All data is up to date!';
+                    migrateButton.textContent = 'Migration Complete';
+                    return;
+                }
+
+                // 3. Create new club documents for any unique names
+                const batch = writeBatch(db);
+                uniqueClubNames.forEach(clubName => {
+                    const newClubRef = doc(collection(db, 'clubs'));
+                    batch.set(newClubRef, { name: clubName, logoUrl: '' });
+                });
+
+                await batch.commit();
+
+                statusMessage.textContent = `Success! Migrated ${uniqueClubNames.size} club(s). You can now add their logos in the admin panel.`;
+                migrateButton.textContent = 'Migration Complete';
+
+            } catch (error) {
+                console.error("Migration failed:", error);
+                statusMessage.textContent = 'An error occurred. Check the console for details.';
+                migrateButton.disabled = false;
+                migrateButton.textContent = 'Retry Migration';
+            }
+        }
+
+        migrateButton.addEventListener('click', startMigration);
+    </script>
+</body>
+</html>
