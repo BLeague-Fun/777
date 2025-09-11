@@ -101,7 +101,8 @@
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyBvXdFou9yUlERH-iaICi6JjNChw1rC2O0",
@@ -132,6 +133,8 @@
 
             try {
                 const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                await signInAnonymously(auth); // FIX: Authenticate the user anonymously
                 const db = getFirestore(app);
 
                 // Fetch all necessary data
@@ -212,4 +215,14 @@
                 </div>`
             }).join('') || '<p>No honors earned yet.</p>';
             
-            matchHistoryEl.innerHTML = playerMatches.sort((a,b) => b.timestamp
+            matchHistoryEl.innerHTML = playerMatches.sort((a,b) => b.timestamp - a.timestamp).map(m => {
+                 const p1Club = clubAssignments[m.league]?.[m.player1Name] || '';
+                 const p2Club = clubAssignments[m.league]?.[m.player2Name] || '';
+                 return `<div class="flex justify-between items-center py-2 border-b border-gray-200"><span>${m.league}: ${m.player1Name} ${p1Club ? `(${p1Club})` : ''} <b>${m.player1Goals}</b> - <b>${m.player2Goals}</b> ${m.player2Name} ${p2Club ? `(${p2Club})` : ''}</span></div>`
+             }).join('') || '<p>No matches played.</p>';
+        }
+
+        document.addEventListener('DOMContentLoaded', startApp);
+    </script>
+</body>
+</html>
