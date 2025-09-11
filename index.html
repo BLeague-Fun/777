@@ -121,6 +121,9 @@
             width: 90%;
             max-width: 600px;
         }
+         #adminModal .modal-content {
+             max-width: 800px;
+        }
         .modal-content p {
             margin-bottom: 1.5rem;
         }
@@ -160,13 +163,7 @@
                 text-align: center;
             }
         }
-        .tab-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-top: 1.5rem;
-        }
-        .tab-button, .league-tab-button {
+        .league-tab-button {
             padding: 0.75rem 1.5rem;
             background-color: #30363d;
             border: 1px solid #30363d;
@@ -175,7 +172,7 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
-        .tab-button.active, .league-tab-button.active {
+        .league-tab-button.active {
             background-color: rgba(13, 17, 23, 0.9);
             border-bottom-color: rgba(13, 17, 23, 0.9);
         }
@@ -198,8 +195,17 @@
             background-color: rgba(255, 215, 0, 0.1);
             border-left: 3px solid #ffd700;
         }
+        #motwContainer {
+            border: 1px solid #ffd700;
+            background: linear-gradient(145deg, rgba(255, 215, 0, 0.05), rgba(255, 215, 0, 0.15));
+        }
         .star-btn { color: #6e7681; cursor: pointer; }
         .star-btn.active { color: #ffd700; }
+        #adminLoginButton {
+            position: absolute;
+            top: 2.5rem;
+            right: 2.5rem;
+        }
         #h2hButton {
             background-image: linear-gradient(to right, #0969da, #58a6ff);
             border: none;
@@ -229,20 +235,17 @@
 <body>
 
     <div class="container relative">
+        <button id="adminLoginButton" class="hidden bg-blue-600 hover:bg-blue-500 p-2 rounded-lg">Admin Panel</button>
         <h1 class="text-4xl font-extrabold">FC 2025 League Tracker</h1>
         <p class="text-center text-sm mt-2"><span id="userIdDisplay">Loading...</span></p>
 
-        <div class="tab-buttons">
-            <button id="matchesTabButton" class="tab-button active">Matches</button>
-            <button id="adminTabButton" class="tab-button hidden">Admin</button>
-        </div>
-        
-        <div id="matchesTab" class="tab-content">
+        <div id="mainContent">
+            <div id="motwContainer" class="stats-section hidden"></div>
             <div id="leagueTabsContainer" class="league-tabs-container"></div>
             <div id="leagueContentContainer"></div>
 
              <div class="stats-section">
-                <h2 class="text-2xl mb-4"><span class="icon">⚔️</span>Head-to-Head</h2>
+                <h2 class="text-2xl mb-4"><span class="icon">⚔️</span>Head-to-Head (All Leagues)</h2>
                 <div class="flex items-center gap-4">
                     <select id="h2hPlayer1Select" class="w-full"></select>
                     <span class="font-bold">vs</span>
@@ -255,37 +258,6 @@
             <div class="archive-section">
                 <h2 class="text-2xl mb-4"><span class="icon">📜</span>Match Archive</h2>
                 <div id="matchList"></div>
-            </div>
-        </div>
-
-        <div id="adminTab" class="tab-content hidden">
-            <div class="form-section">
-                <h2 class="text-2xl mb-4">Add a Match Result</h2>
-                <form id="addMatchForm">
-                    <select id="leagueSelect" required class="w-full"></select>
-                    <select id="player1Select" required class="w-full"></select>
-                    <input type="number" id="player1Goals" placeholder="Goals" required class="w-full">
-                    <span class="text-center font-bold text-gray-500 text-lg">vs</span>
-                    <input type="number" id="player2Goals" placeholder="Goals" required class="w-full">
-                    <select id="player2Select" required class="w-full"></select>
-                    <button type="submit" class="w-full">Add Match</button>
-                </form>
-            </div>
-            <div class="form-section">
-                <h2 class="text-2xl mb-4">Add a New Player</h2>
-                <form id="addPlayerForm" class="flex flex-col gap-4">
-                    <input type="text" id="playerNameInput" placeholder="Player Name" required>
-                    <button type="submit">Add Player</button>
-                </form>
-                <div id="playerList" class="mt-4"></div>
-            </div>
-            <div class="form-section">
-                <h2 class="text-2xl mb-4">Add a New League</h2>
-                <form id="addLeagueForm" class="flex flex-col gap-4">
-                    <input type="text" id="leagueNameInput" placeholder="League Name" required>
-                    <button type="submit">Add League</button>
-                </form>
-                <div id="leagueList" class="mt-4"></div>
             </div>
         </div>
     </div>
@@ -303,6 +275,45 @@
 
     <div id="playerProfileModal" class="modal">
          <div id="playerProfileContent" class="modal-content"></div>
+    </div>
+    
+    <div id="adminModal" class="modal">
+        <div class="modal-content">
+             <div class="flex justify-between items-center mb-4">
+                <h2 class="text-3xl text-left">Admin Controls</h2>
+                <button class="cancel-button bg-gray-700 hover:bg-gray-600 p-2 rounded-lg">Close</button>
+            </div>
+            <div class="form-section">
+                <h2 class="text-2xl mb-4">Add a Match Result</h2>
+                <form id="addMatchForm">
+                    <select id="leagueSelect" required class="w-full"></select>
+                    <select id="player1Select" required class="w-full"></select>
+                    <input type="number" id="player1Goals" placeholder="Goals" required class="w-full">
+                    <span class="text-center font-bold text-gray-500 text-lg">vs</span>
+                    <input type="number" id="player2Goals" placeholder="Goals" required class="w-full">
+                    <select id="player2Select" required class="w-full"></select>
+                    <button type="submit" class="w-full">Add Match</button>
+                </form>
+            </div>
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="form-section flex-1">
+                    <h2 class="text-2xl mb-4">Manage Players</h2>
+                    <form id="addPlayerForm" class="flex flex-col gap-4">
+                        <input type="text" id="playerNameInput" placeholder="Player Name" required>
+                        <button type="submit">Add Player</button>
+                    </form>
+                    <div id="playerList" class="mt-4 max-h-48 overflow-y-auto"></div>
+                </div>
+                <div class="form-section flex-1">
+                    <h2 class="text-2xl mb-4">Manage Leagues</h2>
+                    <form id="addLeagueForm" class="flex flex-col gap-4">
+                        <input type="text" id="leagueNameInput" placeholder="League Name" required>
+                        <button type="submit">Add League</button>
+                    </form>
+                    <div id="leagueList" class="mt-4 max-h-48 overflow-y-auto"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
 
@@ -324,6 +335,9 @@
         const adminUID = "7ss4Z12tDkgCQB1pevK6gKR1WpI3";
 
         // DOM element references
+        const adminLoginButton = document.getElementById('adminLoginButton');
+        const adminModal = document.getElementById('adminModal');
+        const motwContainer = document.getElementById('motwContainer');
         const matchList = document.getElementById('matchList');
         const confirmationModal = document.getElementById('confirmationModal');
         const playerProfileModal = document.getElementById('playerProfileModal');
@@ -345,12 +359,12 @@
         const leagueListContainer = document.getElementById('leagueList');
         const modalText = document.getElementById('modalText');
         const userIdDisplay = document.getElementById('userIdDisplay');
-        const matchesTabButton = document.getElementById('matchesTabButton');
-        const adminTabButton = document.getElementById('adminTabButton');
         
         let db, auth, userId;
         let itemToDelete = null;
         let players = [], leagues = [], matches = [];
+        let chartInstances = {};
+        const chartColors = ['#58a6ff', '#238636', '#e54848', '#a371f7', '#f25757', '#2ea043'];
 
         async function startApp() {
             try {
@@ -362,11 +376,11 @@
                     if (user) {
                         userId = user.uid;
                         userIdDisplay.textContent = `User ID: ${userId}`;
-                        adminTabButton.classList.toggle('hidden', userId !== adminUID);
+                        adminLoginButton.classList.toggle('hidden', userId !== adminUID);
                         setupListeners();
                     } else {
                         userIdDisplay.textContent = "Signed Out";
-                        adminTabButton.classList.add('hidden');
+                        adminLoginButton.classList.add('hidden');
                     }
                 });
             } catch (error) {
@@ -390,15 +404,17 @@
                 matches = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderMatchList();
                 renderAllLeagueData();
+                renderMOTW();
             });
         }
 
         function renderAllLeagueData() {
             if (!leagues.length) return;
-
             const activeLeague = document.querySelector('.league-tab-button.active')?.dataset.league || leagues[0];
             leagueTabsContainer.innerHTML = '';
             leagueContentContainer.innerHTML = '';
+            Object.values(chartInstances).forEach(chart => chart.destroy());
+            chartInstances = {};
 
             leagues.forEach(league => {
                 const tabButton = document.createElement('button');
@@ -414,7 +430,7 @@
                 contentDiv.className = 'league-content';
                 if (league !== activeLeague) contentDiv.classList.add('hidden');
                 
-                const leagueMatches = matches.filter(m => m.league === league);
+                const leagueMatches = matches.filter(m => m.league === league).sort((a,b) => a.timestamp - b.timestamp);
                 const leaguePlayers = [...new Set(leagueMatches.flatMap(m => [m.player1Name, m.player2Name]))];
                 
                 const standings = calculateLeagueStats(leagueMatches, leaguePlayers);
@@ -422,8 +438,15 @@
                 
                 const { topScorers, topDefenders } = calculateTopPlayers(leagueMatches, leaguePlayers);
                 contentDiv.innerHTML += generateTopPlayersHTML(topScorers, topDefenders);
+                
+                const chartData = calculatePlayerProgress(leagueMatches, leaguePlayers);
+                contentDiv.innerHTML += `<div class="stats-section"><h2 class="text-2xl mb-4"><span class="icon">📈</span>Points Progression</h2><canvas id="chart-${league}"></canvas></div>`;
 
                 leagueContentContainer.appendChild(contentDiv);
+                
+                if (chartData.datasets.length > 0) {
+                    renderChart(league, chartData);
+                }
             });
              updateH2HDropdowns();
         }
@@ -431,7 +454,6 @@
         function switchLeagueTab(leagueName) {
             document.querySelectorAll('.league-tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.league === leagueName));
             document.querySelectorAll('.league-content').forEach(content => content.classList.toggle('hidden', content.id !== `content-${leagueName}`));
-            updateH2HDropdowns();
         }
 
         function calculateLeagueStats(leagueMatches, leaguePlayers) {
@@ -439,7 +461,6 @@
             leaguePlayers.forEach(p => {
                 stats[p] = { player: p, played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0, gd: 0, points: 0 };
             });
-
             leagueMatches.forEach(m => {
                 const s1 = stats[m.player1Name], s2 = stats[m.player2Name];
                 if (!s1 || !s2) return;
@@ -452,7 +473,6 @@
                 else if (m.player2Goals > m.player1Goals) { s2.wins++; s2.points += 3; s1.losses++; }
                 else { s1.draws++; s1.points++; s2.draws++; s2.points++; }
             });
-
             return Object.values(stats).sort((a, b) => b.points - a.points || b.gd - a.gd || b.gf - a.gf);
         }
 
@@ -478,17 +498,57 @@
                     </tr>`).join('')}
                 </tbody></table></div>`;
         }
+
+        function calculatePlayerProgress(leagueMatches, leaguePlayers) {
+            const progressData = { labels: [], datasets: [] };
+            let maxGames = 0;
+            leaguePlayers.forEach((player, index) => {
+                const playerMatches = leagueMatches.filter(m => m.player1Name === player || m.player2Name === player);
+                if (playerMatches.length === 0) return;
+                let currentPoints = 0;
+                const pointsHistory = [0];
+                playerMatches.forEach(m => {
+                    const isPlayer1 = m.player1Name === player;
+                    const pGoals = isPlayer1 ? m.player1Goals : m.player2Goals;
+                    const oGoals = isPlayer1 ? m.player2Goals : m.player1Goals;
+                    if (pGoals > oGoals) currentPoints += 3;
+                    else if (pGoals === oGoals) currentPoints += 1;
+                    pointsHistory.push(currentPoints);
+                });
+                progressData.datasets.push({
+                    label: player, data: pointsHistory,
+                    borderColor: chartColors[index % chartColors.length],
+                    backgroundColor: chartColors[index % chartColors.length] + '33',
+                    fill: false, tension: 0.1
+                });
+                if (playerMatches.length > maxGames) maxGames = playerMatches.length;
+            });
+            progressData.labels = Array.from({ length: maxGames + 1 }, (_, i) => `Game ${i}`);
+            return progressData;
+        }
+
+        function renderChart(leagueName, chartData) {
+            const ctx = document.getElementById(`chart-${leagueName}`)?.getContext('2d');
+            if(!ctx) return;
+            chartInstances[leagueName] = new Chart(ctx, {
+                type: 'line', data: chartData,
+                options: {
+                    scales: { 
+                        y: { beginAtZero: true, ticks: { color: '#c9d1d9' }, grid: { color: '#30363d'} }, 
+                        x: { ticks: { color: '#c9d1d9' }, grid: { color: '#30363d'} } 
+                    },
+                    plugins: { legend: { labels: { color: '#c9d1d9' } } }
+                }
+            });
+        }
         
         function calculateTopPlayers(leagueMatches, leaguePlayers) {
             const stats = {};
             leaguePlayers.forEach(p => { stats[p] = { player: p, played: 0, gf: 0, ga: 0 }; });
             leagueMatches.forEach(m => {
-                stats[m.player1Name].played++;
-                stats[m.player2Name].played++;
-                stats[m.player1Name].gf += m.player1Goals;
-                stats[m.player1Name].ga += m.player2Goals;
-                stats[m.player2Name].gf += m.player2Goals;
-                stats[m.player2Name].ga += m.player1Goals;
+                stats[m.player1Name].played++; stats[m.player2Name].played++;
+                stats[m.player1Name].gf += m.player1Goals; stats[m.player1Name].ga += m.player2Goals;
+                stats[m.player2Name].gf += m.player2Goals; stats[m.player2Name].ga += m.player1Goals;
             });
             const allStats = Object.values(stats).filter(p => p.played > 0);
             const topScorers = [...allStats].sort((a,b) => b.gf - a.gf).slice(0, 3);
@@ -512,6 +572,25 @@
                 </div>
             </div>`;
         }
+        
+        function renderMOTW() {
+            const motw = matches.find(m => m.isMOTW);
+            if(motw) {
+                motwContainer.innerHTML = `
+                    <h2 class="text-2xl mb-2 text-center text-yellow-400">★ Match of the Week ★</h2>
+                    <div class="text-center">
+                        <p class="text-lg">${motw.league}</p>
+                        <p class="text-3xl font-bold my-2">
+                            <span class="player-name-link" data-player-name="${motw.player1Name}">${motw.player1Name}</span>
+                            <span class="mx-4">${motw.player1Goals} - ${motw.player2Goals}</span>
+                            <span class="player-name-link" data-player-name="${motw.player2Name}">${motw.player2Name}</span>
+                        </p>
+                    </div>`;
+                motwContainer.classList.remove('hidden');
+            } else {
+                motwContainer.classList.add('hidden');
+            }
+        }
 
         function renderMatchList() {
             const isAdmin = userId === adminUID;
@@ -525,13 +604,6 @@
                 </div>`).join('') || '<p>No matches in the archive.</p>';
         }
 
-        function showTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
-            document.getElementById(`${tabId}Tab`).classList.remove('hidden');
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`${tabId}TabButton`).classList.add('active');
-        }
-        
         function renderPlayerLists() {
             const opts = players.map(p => `<option value="${p}">${p}</option>`).join('');
             player1Select.innerHTML = `<option value="">Select Player 1</option>${opts}`;
@@ -545,11 +617,8 @@
         }
         
         function updateH2HDropdowns() {
-            const activeLeague = document.querySelector('.league-tab-button.active')?.dataset.league;
-            if (!activeLeague) return;
-            const leagueMatches = matches.filter(m => m.league === activeLeague);
-            const leaguePlayers = [...new Set(leagueMatches.flatMap(m => [m.player1Name, m.player2Name]))].sort();
-            const opts = leaguePlayers.map(p => `<option value="${p}">${p}</option>`).join('');
+            const allPlayers = [...players].sort();
+            const opts = allPlayers.map(p => `<option value="${p}">${p}</option>`).join('');
             h2hPlayer1Select.innerHTML = `<option value="">Select Player 1</option>${opts}`;
             h2hPlayer2Select.innerHTML = `<option value="">Select Player 2</option>${opts}`;
         }
@@ -558,18 +627,16 @@
             const p1 = h2hPlayer1Select.value;
             const p2 = h2hPlayer2Select.value;
             if (!p1 || !p2 || p1 === p2) {
-                h2hResult.innerHTML = '<p>Please select two different players from the same league.</p>';
+                h2hResult.innerHTML = '<p>Please select two different players.</p>';
                 return;
             }
 
-            const activeLeague = document.querySelector('.league-tab-button.active')?.dataset.league;
             const h2hMatches = matches.filter(m => 
-                m.league === activeLeague && 
                 ((m.player1Name === p1 && m.player2Name === p2) || (m.player1Name === p2 && m.player2Name === p1))
             );
 
             if (h2hMatches.length === 0) {
-                 h2hResult.innerHTML = `<p>No matches played between ${p1} and ${p2} in this league.</p>`;
+                 h2hResult.innerHTML = `<p>No matches played between ${p1} and ${p2}.</p>`;
                  return;
             }
 
@@ -678,13 +745,9 @@
                 </div>`;
             playerProfileModal.style.display = 'flex';
         }
-
-        document.querySelectorAll('.cancel-button').forEach(button => {
-            button.addEventListener('click', (e) => {
-                e.target.closest('.modal').style.display = 'none';
-            });
-        });
-
+        
+        adminLoginButton.addEventListener('click', () => { adminModal.style.display = 'flex'; });
+        document.querySelectorAll('.cancel-button').forEach(button => { button.addEventListener('click', (e) => { e.target.closest('.modal').style.display = 'none'; }); });
         playerProfileModal.addEventListener('click', e => { if (e.target === playerProfileModal) playerProfileModal.style.display = 'none'; });
         addPlayerForm.addEventListener('submit', async e => { e.preventDefault(); const pName = document.getElementById('playerNameInput').value.trim(); if (pName && !players.includes(pName)) { await addDoc(collection(db, 'players'), { name: pName, owner: userId }); addPlayerForm.reset(); } });
         addLeagueForm.addEventListener('submit', async e => { e.preventDefault(); const lName = document.getElementById('leagueNameInput').value.trim(); if (lName && !leagues.includes(lName)) { await addDoc(collection(db, 'leagues'), { name: lName, owner: userId }); addLeagueForm.reset(); } });
