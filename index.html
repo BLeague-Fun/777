@@ -60,6 +60,7 @@
             padding: 0.75rem;
             text-align: left;
             border-bottom: 1px solid #30363d;
+            white-space: nowrap;
         }
         th {
             background-color: #1f2730;
@@ -159,6 +160,22 @@
         .h2h-vs-divider { text-align: center; }
         .h2h-vs-divider p:first-child { font-size: 2rem; font-weight: bold; color: #58a6ff; }
         
+        .table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .table-container::-webkit-scrollbar {
+            height: 8px;
+        }
+        .table-container::-webkit-scrollbar-track {
+            background: #1f2730;
+            border-radius: 10px;
+        }
+        .table-container::-webkit-scrollbar-thumb {
+            background: #58a6ff;
+            border-radius: 10px;
+        }
+
         /* Mobile Responsive Styles */
         @media (max-width: 768px) {
             .container {
@@ -174,34 +191,6 @@
                 display: block;
                 width: fit-content;
                 margin: 1rem auto 0;
-            }
-            .responsive-table thead {
-                display: none;
-            }
-            .responsive-table tr {
-                display: block;
-                margin-bottom: 1rem;
-                border: 1px solid #30363d;
-                border-radius: 0.5rem;
-                padding: 1rem;
-            }
-            .responsive-table td {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                text-align: right !important;
-                border-bottom: 1px solid #30363d;
-                padding: 0.75rem 0;
-            }
-            .responsive-table td:last-child {
-                border-bottom: none;
-            }
-            .responsive-table td::before {
-                content: attr(data-label);
-                font-weight: bold;
-                text-align: left;
-                margin-right: 1rem;
-                color: #8b949e;
             }
             #h2hResult {
                 grid-template-columns: 1fr;
@@ -401,16 +390,19 @@
              if (standings.length === 0) return `<div class="standings-section"><h2 class="text-2xl"><span class="icon">🏆</span>${leagueName} Standings</h2><p>No matches played yet in this league.</p></div>`;
              return `<div class="standings-section">
                 <h2 class="text-2xl mb-4"><span class="icon">🏆</span>${leagueName} Standings</h2>
-                <table class="w-full responsive-table"><thead><tr>
-                    <th>Rank</th><th>Player</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
-                </tr></thead><tbody>
-                ${standings.map((p, i) => `
-                    <tr class="${getRankClass(i)}">
-                        <td data-label="Rank">${i + 1}</td><td data-label="Player" class="player-name-link" data-player-name="${p.player}">${p.player}</td><td data-label="P">${p.played}</td><td data-label="W">${p.wins}</td>
-                        <td data-label="D">${p.draws}</td><td data-label="L">${p.losses}</td><td data-label="GF">${p.gf}</td>
-                        <td data-label="GA">${p.ga}</td><td data-label="GD">${p.gd}</td><td data-label="Pts" class="font-bold">${p.points}</td>
-                    </tr>`).join('')}
-                </tbody></table></div>`;
+                <div class="table-container">
+                    <table class="w-full"><thead><tr>
+                        <th>Rank</th><th>Player</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
+                    </tr></thead><tbody>
+                    ${standings.map((p, i) => `
+                        <tr class="${getRankClass(i)}">
+                            <td>${i + 1}</td><td class="player-name-link" data-player-name="${p.player}">${p.player}</td><td>${p.played}</td><td>${p.wins}</td>
+                            <td>${p.draws}</td><td>${p.losses}</td><td>${p.gf}</td>
+                            <td>${p.ga}</td><td>${p.gd}</td><td class="font-bold">${p.points}</td>
+                        </tr>`).join('')}
+                    </tbody></table>
+                </div>
+            </div>`;
         }
 
         function calculatePlayerProgress(leagueMatches, leaguePlayers) {
@@ -474,15 +466,19 @@
              return `<div class="flex flex-col md:flex-row gap-4">
                 <div class="stats-section flex-1">
                     <h2 class="text-2xl mb-4"><span class="icon">⚽</span>Top Goal Scorers</h2>
-                    <table class="w-full responsive-table"><thead><tr><th>Rank</th><th>Player</th><th>Goals</th></tr></thead><tbody>
-                        ${topScorers.map((p, i) => `<tr><td data-label="Rank">${i+1}</td><td data-label="Player" class="player-name-link" data-player-name="${p.player}">${p.player}</td><td data-label="Goals" class="font-bold">${p.gf}</td></tr>`).join('')}
-                    </tbody></table>
+                    <div class="table-container">
+                        <table class="w-full"><thead><tr><th>Rank</th><th>Player</th><th>Goals</th></tr></thead><tbody>
+                            ${topScorers.map((p, i) => `<tr><td>${i+1}</td><td class="player-name-link" data-player-name="${p.player}">${p.player}</td><td class="font-bold">${p.gf}</td></tr>`).join('')}
+                        </tbody></table>
+                    </div>
                 </div>
                 <div class="stats-section flex-1">
                     <h2 class="text-2xl mb-4"><span class="icon">🛡️</span>Top Defenders</h2>
-                    <table class="w-full responsive-table"><thead><tr><th>Rank</th><th>Player</th><th>Goals Against</th></tr></thead><tbody>
-                        ${topDefenders.map((p, i) => `<tr><td data-label="Rank">${i+1}</td><td data-label="Player" class="player-name-link" data-player-name="${p.player}">${p.player}</td><td data-label="Goals Against" class="font-bold">${p.ga}</td></tr>`).join('')}
-                    </tbody></table>
+                    <div class="table-container">
+                        <table class="w-full"><thead><tr><th>Rank</th><th>Player</th><th>Goals Against</th></tr></thead><tbody>
+                            ${topDefenders.map((p, i) => `<tr><td>${i+1}</td><td class="player-name-link" data-player-name="${p.player}">${p.player}</td><td class="font-bold">${p.ga}</td></tr>`).join('')}
+                        </tbody></table>
+                    </div>
                 </div>
             </div>`;
         }
