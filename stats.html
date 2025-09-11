@@ -3,90 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Overall Stats - FC 2025 League Tracker</title>
+    <title>Hall of Fame - FC 2025 League Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
         
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8f9fa;
-            color: #333;
-        }
-        .container {
-            max-width: 90%;
-            margin: 2rem auto;
-            padding: 2rem;
-            background-color: rgba(255, 255, 255, 0.85);
-            border-radius: 1rem;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #00b894;
-            text-align: center;
-            font-weight: 700;
-        }
-        .stat-card {
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 2rem;
-            border-radius: 0.75rem;
-            border: 1px solid #e9ecef;
-            text-align: center;
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 24px rgba(0,0,0,0.08);
-        }
-        .stat-label {
-            font-size: 1rem;
-            color: #6c757d;
-        }
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: #00b894;
-        }
-        a {
-            color: #00b894;
-            transition: color 0.2s;
-        }
-        a:hover {
-            color: #00a884;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #333; }
+        .container { max-width: 90%; margin: 2rem auto; padding: 2rem; background-color: rgba(255, 255, 255, 0.85); border-radius: 1rem; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1); }
+        h1, h2, h3 { color: #00b894; text-align: center; font-weight: 700; }
+        h2 { text-align: left; }
+        .stat-card, .leaderboard-card { background-color: rgba(255, 255, 255, 0.9); padding: 1.5rem; border-radius: 0.75rem; border: 1px solid #e9ecef; margin-top: 1.5rem; }
+        .stat-label { font-size: 1rem; color: #6c757d; }
+        .stat-value { font-size: 2.25rem; font-weight: 800; color: #00b894; }
+        .record-holder { font-size: 1.25rem; font-weight: 500; }
+        .leaderboard-item { display: flex; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #e9ecef; }
+        .leaderboard-item:last-child { border-bottom: none; }
+        .leaderboard-rank { font-weight: bold; width: 2rem; }
+        .leaderboard-name { flex-grow: 1; }
+        .leaderboard-value { font-weight: bold; }
+        .trophy-icon { font-size: 1.25rem; margin-right: 0.5rem; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="text-4xl font-extrabold">Overall Statistics</h1>
-        <p class="text-center mt-2"><a href="index.html" class="hover:underline">← Back to Main Page</a></p>
+        <h1 class="text-4xl font-extrabold">Hall of Fame</h1>
+        <p class="text-center mt-2"><a href="index.html" class="text-green-500 hover:underline">← Back to Main Page</a></p>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
-            <div class="stat-card">
-                <p class="stat-label">Total Matches Played</p>
-                <p id="totalMatches" class="stat-value">0</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+            <div class="stat-card lg:col-span-3">
+                <h2 class="text-2xl mb-4">All-Time Records</h2>
+                <div id="allTimeRecords" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Records will be populated here -->
+                </div>
             </div>
-            <div class="stat-card">
-                <p class="stat-label">Total Goals Scored</p>
-                <p id="totalGoals" class="stat-value">0</p>
+
+            <div class="leaderboard-card">
+                <h2 class="text-2xl mb-4">League Champions 🥇</h2>
+                <div id="leagueChampionsList" class="max-h-96 overflow-y-auto"></div>
             </div>
-            <div class="stat-card">
-                <p class="stat-label">Average Goals Per Match</p>
-                <p id="avgGoals" class="stat-value">0</p>
+            <div class="leaderboard-card">
+                <h2 class="text-2xl mb-4">Most Top Scorer Awards ⚽</h2>
+                <div id="topScorerLeaderboard" class="max-h-96 overflow-y-auto"></div>
             </div>
-            <div class="stat-card">
-                <p class="stat-label">Most Competitive Rivalry</p>
-                <p id="topRivalry" class="stat-value">N/A</p>
+            <div class="leaderboard-card">
+                <h2 class="text-2xl mb-4">Most Best Defender Awards 🛡️</h2>
+                <div id="bestDefenderLeaderboard" class="max-h-96 overflow-y-auto"></div>
             </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyBvXdFou9yUlERH-iaICi6JjNChw1rC2O0",
@@ -98,54 +66,122 @@
           measurementId: "G-QJCY28B9HM"
         };
         
-        const totalMatchesEl = document.getElementById('totalMatches');
-        const totalGoalsEl = document.getElementById('totalGoals');
-        const avgGoalsEl = document.getElementById('avgGoals');
-        const topRivalryEl = document.getElementById('topRivalry');
-        
         async function startApp() {
             try {
                 const app = initializeApp(firebaseConfig);
                 const db = getFirestore(app);
-                onSnapshot(collection(db, 'matches'), snapshot => {
-                    const matches = snapshot.docs.map(doc => doc.data());
-                    calculateOverallStats(matches);
-                });
+
+                const playersSnapshot = await getDocs(collection(db, 'players'));
+                const leaguesSnapshot = await getDocs(collection(db, 'leagues'));
+                const matchesSnapshot = await getDocs(query(collection(db, 'matches'), where('status', '==', 'completed')));
+                const honorsSnapshot = await getDocs(collection(db, 'honors'));
+
+                const players = playersSnapshot.docs.map(doc => doc.data());
+                const leagues = leaguesSnapshot.docs.map(doc => doc.data());
+                const matches = matchesSnapshot.docs.map(doc => doc.data());
+                const honors = honorsSnapshot.docs.map(doc => doc.data());
+
+                renderHallOfFame(players, leagues, matches, honors);
+
             } catch (error) {
-                console.error("Firebase initialization error:", error);
+                console.error("Error loading stats:", error);
             }
         }
 
-        function calculateOverallStats(matches) {
-            const totalMatches = matches.length;
-            if (totalMatches === 0) return;
+        function renderHallOfFame(players, leagues, matches, honors) {
+            // Render Leaderboards
+            renderLeaderboard('leagueChampionsList', honors, 'Gold Medal', '🥇');
+            renderLeaderboard('topScorerLeaderboard', honors, 'Top Scorer', '⚽');
+            renderLeaderboard('bestDefenderLeaderboard', honors, 'Best Defender', '🛡️');
 
-            const totalGoals = matches.reduce((sum, match) => sum + match.player1Goals + match.player2Goals, 0);
-            const avgGoals = (totalGoals / totalMatches).toFixed(2);
+            // Render All-Time Records
+            calculateAndRenderRecords(players, leagues, matches);
+        }
 
-            const rivalries = {};
-            matches.forEach(match => {
-                const key = [match.player1Name, match.player2Name].sort().join('-');
-                rivalries[key] = (rivalries[key] || 0) + 1;
+        function renderLeaderboard(elementId, honors, awardType, icon) {
+            const element = document.getElementById(elementId);
+            const leaderboard = {};
+
+            honors.filter(h => h.award === awardType).forEach(h => {
+                leaderboard[h.playerName] = (leaderboard[h.playerName] || 0) + 1;
+            });
+            
+            const sortedPlayers = Object.entries(leaderboard).sort((a, b) => b[1] - a[1]);
+
+            if (sortedPlayers.length > 0) {
+                element.innerHTML = sortedPlayers.map(([name, count], index) => `
+                    <div class="leaderboard-item">
+                        <div class="leaderboard-rank">${index + 1}</div>
+                        <div class="leaderboard-name">${name}</div>
+                        <div class="leaderboard-value">${count} ${icon}</div>
+                    </div>
+                `).join('');
+            } else {
+                element.innerHTML = '<p class="text-gray-500">No awards yet.</p>';
+            }
+        }
+        
+        function calculateAndRenderRecords(players, leagues, matches) {
+            const records = {
+                mostGoalsSeason: { value: 0, player: 'N/A', league: '' },
+                longestUndefeatedStreak: { value: 0, player: 'N/A' },
+                biggestMargin: { value: 0, league: '', winner: '' }
+            };
+
+            const completedLeagues = leagues.filter(l => l.status === 'ended');
+
+            completedLeagues.forEach(league => {
+                const leagueMatches = matches.filter(m => m.league === league.name);
+                const leaguePlayers = league.roster || [];
+                const stats = {};
+                leaguePlayers.forEach(p => { stats[p] = { gf: 0 }; });
+                leagueMatches.forEach(m => {
+                    if(stats[m.player1Name]) stats[m.player1Name].gf += m.player1Goals;
+                    if(stats[m.player2Name]) stats[m.player2Name].gf += m.player2Goals;
+                });
+                
+                const topScorer = Object.entries(stats).sort((a, b) => b[1].gf - a[1].gf)[0];
+                if (topScorer && topScorer[1].gf > records.mostGoalsSeason.value) {
+                    records.mostGoalsSeason = { value: topScorer[1].gf, player: topScorer[0], league: league.name };
+                }
             });
 
-            let topRivalry = 'N/A';
-            let maxGames = 0;
-            for (const key in rivalries) {
-                if (rivalries[key] > maxGames) {
-                    maxGames = rivalries[key];
-                    topRivalry = key.replace('-', ' vs ');
+            players.forEach(player => {
+                const playerMatches = matches.filter(m => m.player1Name === player.name || m.player2Name === player.name).sort((a,b) => a.timestamp - b.timestamp);
+                let currentStreak = 0;
+                let maxStreak = 0;
+                playerMatches.forEach(m => {
+                    const isP1 = m.player1Name === player.name;
+                    const pGoals = isP1 ? m.player1Goals : m.player2Goals;
+                    const oGoals = isP1 ? m.player2Goals : m.player1Goals;
+                    if (pGoals >= oGoals) {
+                        currentStreak++;
+                    } else {
+                        if (currentStreak > maxStreak) maxStreak = currentStreak;
+                        currentStreak = 0;
+                    }
+                });
+                if (currentStreak > maxStreak) maxStreak = currentStreak;
+                if (maxStreak > records.longestUndefeatedStreak.value) {
+                    records.longestUndefeatedStreak = { value: maxStreak, player: player.name };
                 }
-            }
+            });
 
-            totalMatchesEl.textContent = totalMatches;
-            totalGoalsEl.textContent = totalGoals;
-            avgGoalsEl.textContent = avgGoals;
-            topRivalryEl.innerHTML = `${topRivalry} <span class="text-lg text-gray-500 block">${maxGames} games</span>`;
+            document.getElementById('allTimeRecords').innerHTML = `
+                <div class="stat-card">
+                    <p class="stat-label">Most Goals in a Season</p>
+                    <p class="stat-value">${records.mostGoalsSeason.value}</p>
+                    <p class="record-holder">${records.mostGoalsSeason.player} (${records.mostGoalsSeason.league})</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Longest Undefeated Streak</p>
+                    <p class="stat-value">${records.longestUndefeatedStreak.value}</p>
+                    <p class="record-holder">${records.longestUndefeatedStreak.player}</p>
+                </div>
+            `;
         }
 
         document.addEventListener('DOMContentLoaded', startApp);
     </script>
 </body>
 </html>
-
