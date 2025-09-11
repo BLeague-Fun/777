@@ -397,7 +397,7 @@
                 <h2 class="text-2xl mb-4"><span class="icon">🏆</span>${leagueName} Standings</h2>
                 <div class="table-container">
                     <table class="w-full"><thead><tr>
-                        <th>Rank</th><th>Player</th><th>Club Icon</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
+                        <th>Rank</th><th>Player</th><th>Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
                     </tr></thead><tbody>
                     ${standings.map((p, i) => {
                         const clubName = clubAssignments[leagueName]?.[p.player] || 'N/A';
