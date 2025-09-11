@@ -205,6 +205,7 @@
         
         const adminUID = "ujMJ9cUFxxguzNmezN6iF2TQNN52";
 
+        // DOM elements
         const loginSection = document.getElementById('loginSection');
         const loginForm = document.getElementById('loginForm');
         const loginError = document.getElementById('loginError');
@@ -364,7 +365,7 @@
         }
 
         function renderCompletedGamesList() {
-             const completedMatches = matches.filter(m => m.status === 'completed');
+             const completedMatches = matches.filter(m => m.status === 'completed' || (m.status === undefined && m.player1Goals !== undefined));
             const matchesByLeague = completedMatches.reduce((acc, match) => {
                 (acc[match.league] = acc[match.league] || []).push(match);
                 return acc;
