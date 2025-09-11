@@ -66,16 +66,18 @@
         button:hover {
             background-color: #2ea043;
         }
-        .delete-item-btn {
+        .delete-item-btn, .edit-item-btn {
             background-color: transparent;
             border: none;
-            color: #e54848;
             cursor: pointer;
             padding: 0.25rem;
             transition: color 0.2s;
         }
+        .delete-item-btn { color: #e54848; }
         .delete-item-btn:hover { color: #f25757; }
-        .player-item, .league-item {
+        .edit-item-btn { color: #58a6ff; }
+        .edit-item-btn:hover { color: #79c0ff; }
+        .player-item, .league-item, .match-management-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -83,6 +85,17 @@
             border-bottom: 1px solid #30363d;
         }
         .hidden { display: none; }
+        .star-btn { color: #6e7681; cursor: pointer; background: none; border: none; font-size: 1.5rem; }
+        .star-btn.active { color: #ffd700; }
+        .modal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+            justify-content: center; align-items: center; overflow-y: auto;
+        }
+        .modal-content {
+            background-color: #161b22; padding: 2rem; border-radius: 0.75rem; border: 1px solid #30363d;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); width: 90%; max-width: 500px;
+        }
     </style>
 </head>
 <body>
@@ -109,16 +122,22 @@
 
             <div class="form-section">
                 <h2 class="text-2xl mb-4">Add a Match Result</h2>
-                <form id="addMatchForm" class="grid grid-cols-1 md:grid-cols-6 gap-4 items-center">
+                <form id="addMatchForm" class="grid grid-cols-1 md:grid-cols-[1fr,1fr,auto,1fr,1fr] gap-4 items-center">
                     <select id="leagueSelect" required class="w-full"></select>
                     <select id="player1Select" required class="w-full"></select>
                     <input type="number" id="player1Goals" placeholder="Goals" required class="w-full text-center">
                     <span class="text-center font-bold text-gray-500 text-lg">vs</span>
                     <input type="number" id="player2Goals" placeholder="Goals" required class="w-full text-center">
                     <select id="player2Select" required class="w-full"></select>
-                    <button type="submit" class="w-full md:col-span-6">Add Match</button>
+                    <button type="submit" class="w-full md:col-span-5">Add Match</button>
                 </form>
             </div>
+
+            <div class="form-section">
+                <h2 class="text-2xl mb-4">Manage Matches</h2>
+                <div id="matchManagementList" class="max-h-96 overflow-y-auto"></div>
+            </div>
+
             <div class="flex flex-col md:flex-row gap-4">
                 <div class="form-section flex-1">
                     <h2 class="text-2xl mb-4">Manage Players</h2>
@@ -140,10 +159,35 @@
         </div>
     </div>
     
+    <!-- Edit Match Modal -->
+    <div id="editMatchModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-2xl mb-4">Edit Match Score</h2>
+            <form id="editMatchForm">
+                <input type="hidden" id="editMatchId">
+                <div class="flex items-center justify-center gap-4">
+                    <div class="text-center">
+                        <label id="editPlayer1Name" class="block mb-2 font-bold"></label>
+                        <input type="number" id="editPlayer1Goals" required class="w-24 text-center text-2xl">
+                    </div>
+                    <span class="text-2xl font-bold">vs</span>
+                    <div class="text-center">
+                        <label id="editPlayer2Name" class="block mb-2 font-bold"></label>
+                        <input type="number" id="editPlayer2Goals" required class="w-24 text-center text-2xl">
+                    </div>
+                </div>
+                <div class="flex justify-center gap-4 mt-6">
+                    <button type="button" class="cancel-button bg-gray-600 hover:bg-gray-500">Cancel</button>
+                    <button type="submit">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, addDoc, deleteDoc, updateDoc, onSnapshot, collection, query, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyBvXdFou9yUlERH-iaICi6JjNChw1rC2O0",
@@ -169,9 +213,12 @@
         const addLeagueForm = document.getElementById('addLeagueForm');
         const playerListContainer = document.getElementById('playerList');
         const leagueListContainer = document.getElementById('leagueList');
+        const matchManagementList = document.getElementById('matchManagementList');
+        const editMatchModal = document.getElementById('editMatchModal');
+        const editMatchForm = document.getElementById('editMatchForm');
 
         let db, auth, userId;
-        let players = [], leagues = [];
+        let players = [], leagues = [], matches = [];
 
         async function startApp() {
             try {
@@ -206,7 +253,6 @@
 
             try {
                 await signInWithEmailAndPassword(auth, email, password);
-                // onAuthStateChanged will handle showing the controls
             } catch (error) {
                 console.error("Login failed:", error);
                 loginError.textContent = "Login failed. Please check your credentials.";
@@ -223,6 +269,10 @@
                 leagues = snapshot.docs.map(doc => doc.data().name);
                 renderLeagueLists();
             });
+            onSnapshot(collection(db, 'matches'), snapshot => {
+                matches = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderMatchManagementList();
+            });
         }
         
         function renderPlayerLists() {
@@ -236,16 +286,88 @@
             leagueSelect.innerHTML = `<option value="">Select League</option>${leagues.map(l => `<option value="${l}">${l}</option>`).join('')}`;
             leagueListContainer.innerHTML = leagues.map(l => `<div class="league-item"><span>${l}</span><button data-name="${l}" data-type="league" class="delete-item-btn"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button></div>`).join('') || '<p>No leagues added yet.</p>';
         }
+        
+        function renderMatchManagementList() {
+            const matchesByLeague = matches.reduce((acc, match) => {
+                (acc[match.league] = acc[match.league] || []).push(match);
+                return acc;
+            }, {});
+
+            matchManagementList.innerHTML = Object.keys(matchesByLeague).sort().map(leagueName => `
+                <div class="mb-4">
+                    <h3 class="text-xl font-bold border-b border-gray-700 pb-1 mb-2">${leagueName}</h3>
+                    ${matchesByLeague[leagueName].sort((a,b) => b.timestamp - a.timestamp).map(m => `
+                        <div class="match-management-item">
+                            <span>${m.player1Name} <b>${m.player1Goals}</b> - <b>${m.player2Goals}</b> ${m.player2Name}</span>
+                            <div class="flex items-center gap-2">
+                                <button class="star-btn ${m.isMOTW ? 'active' : ''}" data-id="${m.id}" title="Set as Match of the Week">★</button>
+                                <button class="edit-item-btn" data-id="${m.id}" title="Edit Match"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg></button>
+                                <button class="delete-item-btn" data-id="${m.id}" data-type="match" title="Delete Match"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('') || '<p>No matches to manage yet.</p>';
+        }
+
+        async function toggleMOTW(matchId) {
+            const batch = writeBatch(db);
+            matches.forEach(match => {
+                const docRef = doc(db, 'matches', match.id);
+                if (match.id === matchId) batch.update(docRef, { isMOTW: !match.isMOTW }); 
+                else if (match.isMOTW) batch.update(docRef, { isMOTW: false });
+            });
+            await batch.commit();
+        }
+
+        function openEditModal(matchId) {
+            const match = matches.find(m => m.id === matchId);
+            if (!match) return;
+            document.getElementById('editMatchId').value = match.id;
+            document.getElementById('editPlayer1Name').textContent = match.player1Name;
+            document.getElementById('editPlayer2Name').textContent = match.player2Name;
+            document.getElementById('editPlayer1Goals').value = match.player1Goals;
+            document.getElementById('editPlayer2Goals').value = match.player2Goals;
+            editMatchModal.style.display = 'flex';
+        }
+        
+        editMatchForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const matchId = document.getElementById('editMatchId').value;
+            const player1Goals = parseInt(document.getElementById('editPlayer1Goals').value);
+            const player2Goals = parseInt(document.getElementById('editPlayer2Goals').value);
+
+            if (!isNaN(player1Goals) && !isNaN(player2Goals)) {
+                const matchRef = doc(db, 'matches', matchId);
+                await updateDoc(matchRef, { player1Goals, player2Goals });
+                editMatchModal.style.display = 'none';
+            }
+        });
 
         document.addEventListener('click', async (e) => {
-            const btn = e.target.closest('.delete-item-btn');
-            if (btn) {
-                const { name, type } = btn.dataset;
-                if(confirm(`Are you sure you want to delete this ${type}: ${name}?`)) {
-                    const q = query(collection(db, `${type}s`), where("name", "==", name));
-                    const snapshot = await getDocs(q);
-                    snapshot.forEach(d => deleteDoc(d.ref));
+            const deleteBtn = e.target.closest('.delete-item-btn');
+            if (deleteBtn) {
+                const { name, type, id } = deleteBtn.dataset;
+                const itemIdentifier = type === 'match' ? 'this match' : `${type}: ${name}`;
+                if(confirm(`Are you sure you want to delete ${itemIdentifier}?`)) {
+                    if(type === 'match') {
+                        await deleteDoc(doc(db, 'matches', id));
+                    } else {
+                        const q = query(collection(db, `${type}s`), where("name", "==", name));
+                        const snapshot = await getDocs(q);
+                        snapshot.forEach(d => deleteDoc(d.ref));
+                    }
                 }
+            }
+
+            const editBtn = e.target.closest('.edit-item-btn');
+            if (editBtn) {
+                openEditModal(editBtn.dataset.id);
+            }
+            
+            const starBtn = e.target.closest('.star-btn');
+            if(starBtn) {
+                toggleMOTW(starBtn.dataset.id);
             }
         });
 
@@ -253,6 +375,10 @@
         addLeagueForm.addEventListener('submit', async e => { e.preventDefault(); const lName = document.getElementById('leagueNameInput').value.trim(); if (lName && !leagues.includes(lName)) { await addDoc(collection(db, 'leagues'), { name: lName, owner: userId }); addLeagueForm.reset(); } });
         addMatchForm.addEventListener('submit', async e => { e.preventDefault(); const l = leagueSelect.value, p1 = player1Select.value, g1 = parseInt(document.getElementById('player1Goals').value), p2 = player2Select.value, g2 = parseInt(document.getElementById('player2Goals').value); if (l && p1 && p2 && !isNaN(g1) && !isNaN(g2) && p1 !== p2) { await addDoc(collection(db, 'matches'), { league:l, player1Name:p1, player1Goals:g1, player2Name:p2, player2Goals:g2, timestamp: Date.now(), isMOTW: false }); addMatchForm.reset(); } });
         
+        document.querySelectorAll('.cancel-button').forEach(btn => btn.addEventListener('click', () => {
+            editMatchModal.style.display = 'none';
+        }));
+
         document.addEventListener('DOMContentLoaded', startApp);
     </script>
 </body>
