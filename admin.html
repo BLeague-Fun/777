@@ -400,7 +400,11 @@
                 return;
             }
             const leagueData = leagues.find(l => l.name === selectedLeague);
-            const leaguePlayers = leagueData?.roster || [];
+            let leaguePlayers = leagueData?.roster || [];
+            if (!leaguePlayers.length) {
+                 leaguePlayers = [...new Set(matches.filter(m => m.league === selectedLeague).flatMap(m => [m.player1Name, m.player2Name]))];
+            }
+
             const currentAssignments = clubAssignments[selectedLeague] || {};
 
             clubAssignmentsContainer.innerHTML = leaguePlayers.sort().map(p => `
@@ -458,8 +462,8 @@
 
         function openFixtureModal(leagueId, leagueName) {
             activeFixtureLeague = { leagueId, leagueName };
-            fixtureOptionsModal.style.display = 'flex';
-            fixtureOptionsModal.querySelector('.modal-content').innerHTML = `
+            const modalContent = fixtureOptionsModal.querySelector('.modal-content');
+            modalContent.innerHTML = `
                 <h2 class="text-2xl mb-4">Generate Fixtures</h2>
                 <p class="mb-6 text-center">Choose the format for this league.</p>
                 <div class="flex flex-col gap-4">
@@ -468,8 +472,9 @@
                     <button type="button" class="cancel-button bg-gray-600 hover:bg-gray-500 text-white mt-4">Cancel</button>
                 </div>
             `;
-            document.getElementById('generateSingleLeg').addEventListener('click', () => generateFixtures(1));
-            document.getElementById('generateDoubleLeg').addEventListener('click', () => generateFixtures(2));
+            modalContent.querySelector('#generateSingleLeg').addEventListener('click', () => generateFixtures(1));
+            modalContent.querySelector('#generateDoubleLeg').addEventListener('click', () => generateFixtures(2));
+            fixtureOptionsModal.style.display = 'flex';
         }
 
         function openEnterResultModal(matchId) {
@@ -630,6 +635,11 @@
                     <input type="hidden" id="editClubId" value="${clubId}">
                     <div><label class="block mb-1">Club Name</label><input type="text" id="editClubName" value="${club.name}" required class="w-full"></div>
                     <div><label class="block mb-1">Club Logo URL</label><input type="url" id="editClubLogo" value="${club.logoUrl || ''}" class="w-full"></div>
+                     <div class="grid grid-cols-3 gap-2">
+                        <input type="text" id="editClubPrimaryColor" value="${club.primaryColor || ''}" placeholder="Primary Hex">
+                        <input type="text" id="editClubSecondaryColor" value="${club.secondaryColor || ''}" placeholder="Secondary Hex">
+                        <input type="text" id="editClubTextColor" value="${club.textColor || ''}" placeholder="Text Hex">
+                    </div>
                     <div class="flex justify-end gap-4 mt-4">
                         <button type="button" class="cancel-button bg-gray-600 hover:bg-gray-500 text-white">Cancel</button>
                         <button type="submit">Save Club</button>
@@ -645,9 +655,12 @@
             const clubId = document.getElementById('editClubId').value;
             const name = document.getElementById('editClubName').value.trim();
             const logoUrl = document.getElementById('editClubLogo').value.trim();
+            const primaryColor = document.getElementById('editClubPrimaryColor').value.trim();
+            const secondaryColor = document.getElementById('editClubSecondaryColor').value.trim();
+            const textColor = document.getElementById('editClubTextColor').value.trim();
 
             if (name) {
-                await updateDoc(doc(db, 'clubs', clubId), { name, logoUrl });
+                await updateDoc(doc(db, 'clubs', clubId), { name, logoUrl, primaryColor, secondaryColor, textColor });
                 editClubModal.style.display = 'none';
             }
         });
@@ -780,8 +793,11 @@
             e.preventDefault();
             const clubName = document.getElementById('clubNameInput').value.trim();
             const clubLogo = document.getElementById('clubLogoInput').value.trim();
+            const primaryColor = document.getElementById('clubPrimaryColor').value.trim();
+            const secondaryColor = document.getElementById('clubSecondaryColor').value.trim();
+            const textColor = document.getElementById('clubTextColor').value.trim();
             if(clubName && !clubs.find(c => c.name === clubName)) {
-                await addDoc(collection(db, 'clubs'), { name: clubName, logoUrl: clubLogo });
+                await addDoc(collection(db, 'clubs'), { name: clubName, logoUrl: clubLogo, primaryColor, secondaryColor, textColor });
                 addClubForm.reset();
             } else {
                  alert('A club with this name already exists.');
