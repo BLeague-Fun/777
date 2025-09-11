@@ -20,31 +20,28 @@
             background-color: rgba(255, 255, 255, 0.85);
             border-radius: 1rem;
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(0, 0, 0, 0.1);
         }
         h1, h2 {
             color: #00b894;
             font-weight: 700;
         }
-        .stat-card, .trophy-card {
+        .stat-card, .trophy-card, .title-card {
              background-color: rgba(255, 255, 255, 0.9);
             padding: 1.5rem;
             border-radius: 0.75rem;
             border: 1px solid #e9ecef;
             margin-top: 1.5rem;
         }
-        .trophy {
+        .trophy, .special-title {
             display: flex;
             align-items: center;
             padding: 0.75rem 0;
             border-bottom: 1px solid #e9ecef;
         }
-        .trophy:last-child {
+        .trophy:last-child, .special-title:last-child {
             border-bottom: none;
         }
-        .trophy-icon {
+        .trophy-icon, .title-icon {
             font-size: 2rem;
             margin-right: 1rem;
         }
@@ -82,14 +79,18 @@
         </div>
         <p class="text-center mt-4"><a href="index.html" class="text-green-500 hover:underline">← Back to Main Page</a></p>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-            <div class="stat-card">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+            <div class="stat-card lg:col-span-2">
                 <h2 class="text-2xl mb-4">Career Statistics</h2>
                 <div id="careerStats" class="grid grid-cols-2 gap-4"></div>
             </div>
             <div class="trophy-card">
                 <h2 class="text-2xl mb-4">Trophy Cabinet</h2>
-                <div id="trophyCabinet" class="max-h-96 overflow-y-auto"></div>
+                <div id="trophyCabinet" class="max-h-[300px] overflow-y-auto"></div>
+            </div>
+             <div class="title-card lg:col-span-3">
+                <h2 class="text-2xl mb-4">Special Titles</h2>
+                <div id="specialTitles" class="max-h-96 overflow-y-auto"></div>
             </div>
         </div>
         
@@ -119,6 +120,7 @@
         const playerAvatarEl = document.getElementById('playerAvatar');
         const careerStatsEl = document.getElementById('careerStats');
         const trophyCabinetEl = document.getElementById('trophyCabinet');
+        const specialTitlesEl = document.getElementById('specialTitles');
         const matchHistoryEl = document.getElementById('matchHistory');
 
         async function startApp() {
@@ -137,23 +139,23 @@
                 await signInAnonymously(auth); 
                 const db = getFirestore(app);
 
-                const playersSnapshot = await getDocs(query(collection(db, 'players'), where('name', '==', playerName)));
+                const playersSnapshot = await getDocs(collection(db, 'players'));
                 const matchesSnapshot = await getDocs(query(collection(db, 'matches'), where('status', '==', 'completed')));
                 const honorsSnapshot = await getDocs(query(collection(db, 'honors'), where('playerName', '==', playerName)));
                 const clubAssignmentsSnapshot = await getDocs(collection(db, 'clubAssignments'));
+                const leaguesSnapshot = await getDocs(collection(db, 'leagues'));
 
-                const matches = matchesSnapshot.docs.map(doc => doc.data());
+                const allPlayers = playersSnapshot.docs.map(doc => doc.data());
+                const allMatches = matchesSnapshot.docs.map(doc => doc.data());
                 const honors = honorsSnapshot.docs.map(doc => doc.data());
+                const allLeagues = leaguesSnapshot.docs.map(doc => doc.data());
                 
-                let playerData = {};
-                if(!playersSnapshot.empty) {
-                    playerData = playersSnapshot.docs[0].data();
-                }
+                const playerData = allPlayers.find(p => p.name === playerName);
 
                 const clubAssignments = {};
                 clubAssignmentsSnapshot.forEach(doc => { clubAssignments[doc.id] = doc.data() });
 
-                calculateAndRenderProfile(playerData, matches, honors, clubAssignments);
+                calculateAndRenderProfile(playerData, allPlayers, allMatches, honors, clubAssignments, allLeagues);
 
             } catch (error) {
                 console.error("Error loading profile:", error);
@@ -161,7 +163,7 @@
             }
         }
 
-        function calculateAndRenderProfile(playerData, allMatches, honors, clubAssignments) {
+        function calculateAndRenderProfile(playerData, allPlayers, allMatches, honors, clubAssignments, allLeagues) {
             const playerName = playerData.name;
             playerEmailEl.textContent = playerData.email || '';
             if (playerData.avatarUrl) {
@@ -170,8 +172,11 @@
 
             const playerMatches = allMatches.filter(m => m.player1Name === playerName || m.player2Name === playerName);
             
-            let wins = 0, losses = 0, draws = 0, gf = 0, ga = 0, biggestWin = { diff: 0, score: 'N/A' };
+            let wins = 0, losses = 0, draws = 0, gf = 0, ga = 0;
+            let biggestWin = { diff: 0, score: 'N/A' };
+            let worstLoss = { diff: 0, score: 'N/A' };
             const lossesTo = {};
+            const winsAgainst = {};
 
             playerMatches.forEach(m => {
                 const isPlayer1 = m.player1Name === playerName;
@@ -183,24 +188,34 @@
                 
                 if (pGoals > oGoals) {
                     wins++;
+                    winsAgainst[opponentName] = (winsAgainst[opponentName] || 0) + 1;
                     if (pGoals - oGoals > biggestWin.diff) biggestWin = { diff: pGoals - oGoals, score: `${pGoals} - ${oGoals}` };
                 } else if (oGoals > pGoals) {
                     losses++;
                     lossesTo[opponentName] = (lossesTo[opponentName] || 0) + 1;
+                    if (oGoals - pGoals > worstLoss.diff) worstLoss = { diff: oGoals - pGoals, score: `${pGoals} - ${oGoals}` };
                 } else {
                     draws++;
                 }
             });
+            
             const played = playerMatches.length;
             const winRate = played ? ((wins / played) * 100).toFixed(1) : 0;
             const gpg = played ? (gf / played).toFixed(2) : 0;
-
-            let nemesisName = 'None';
-            let maxLosses = 0;
+            
+            let nemesisName = 'None', maxLosses = 0;
             for (const opponent in lossesTo) {
                 if (lossesTo[opponent] > maxLosses) {
                     maxLosses = lossesTo[opponent];
                     nemesisName = opponent;
+                }
+            }
+
+            let favoriteOpponent = 'None', maxWins = 0;
+             for (const opponent in winsAgainst) {
+                if (winsAgainst[opponent] > maxWins) {
+                    maxWins = winsAgainst[opponent];
+                    favoriteOpponent = opponent;
                 }
             }
 
@@ -209,34 +224,81 @@
                 <p><strong>Record (W-D-L):</strong> ${wins}-${draws}-${losses}</p><p><strong>Goals per Game:</strong> ${gpg}</p>
                 <p><strong>Goals For:</strong> ${gf}</p><p><strong>Goals Against:</strong> ${ga}</p>
                 <p><strong>Biggest Win:</strong> ${biggestWin.score}</p>
+                <p><strong>Crushing Defeat:</strong> ${worstLoss.score}</p>
                 <p class="col-span-2"><strong>Nemesis:</strong> ${nemesisName === 'None' ? 'None' : `${nemesisName} (${maxLosses} losses)`}</p>
+                 <p class="col-span-2"><strong>Favorite Opponent:</strong> ${favoriteOpponent === 'None' ? 'None' : `${favoriteOpponent} (${maxWins} wins)`}</p>
             `;
 
             const awardIcons = {
-                'Gold Medal': '🥇',
-                'Silver Medal': '🥈',
-                'Bronze Medal': '🥉',
-                'Top Scorer': '⚽',
-                'Best Defender': '🛡️'
+                'Gold Medal': '🥇', 'Silver Medal': '🥈', 'Bronze Medal': '🥉',
+                'Top Scorer': '⚽', 'Best Defender': '🛡️'
             };
 
             trophyCabinetEl.innerHTML = honors.sort((a,b) => b.timestamp - a.timestamp).map(honor => {
                 const date = honor.leagueDate ? new Date(honor.leagueDate).toLocaleDateString() : new Date(honor.timestamp).toLocaleDateString();
-                return `
-                <div class="trophy">
-                    <span class="trophy-icon">${awardIcons[honor.award] || '🏆'}</span>
-                    <div>
-                        <p class="font-bold">${honor.award}</p>
-                        <p class="text-sm text-gray-500">${honor.leagueName} (${date})</p>
-                    </div>
-                </div>`
+                return `<div class="trophy"><span class="trophy-icon">${awardIcons[honor.award] || '🏆'}</span><div><p class="font-bold">${honor.award}</p><p class="text-sm text-gray-500">${honor.leagueName} (${date})</p></div></div>`
             }).join('') || '<p>No honors earned yet.</p>';
+            
+            // Calculate and Render Special Titles
+            renderSpecialTitles(playerName, allPlayers, allMatches, honors, allLeagues);
             
             matchHistoryEl.innerHTML = playerMatches.sort((a,b) => b.timestamp - a.timestamp).map(m => {
                  const p1Club = clubAssignments[m.league]?.[m.player1Name] || '';
                  const p2Club = clubAssignments[m.league]?.[m.player2Name] || '';
-                 return `<div class="flex justify-between items-center py-2 border-b border-gray-200"><span>${m.league}: ${m.player1Name} ${p1Club ? `(${p1Club})` : ''} <b>${m.player1Goals}</b> - <b>${m.player2Goals}</b> ${m.player2Name} ${p2Club ? `(${p2Club})` : ''}</span></div>`
+                 return `<div class="match-item"><span>${m.league}: ${m.player1Name} ${p1Club ? `(${p1Club})` : ''} <b>${m.player1Goals}</b> - <b>${m.player2Goals}</b> ${m.player2Name} ${p2Club ? `(${p2Club})` : ''}</span></div>`
              }).join('') || '<p>No matches played.</p>';
+        }
+
+        function renderSpecialTitles(currentPlayerName, allPlayers, allMatches, allHonors, allLeagues) {
+            let titlesHTML = '';
+            
+            const playerStats = allPlayers.map(p => {
+                const pMatches = allMatches.filter(m => m.player1Name === p.name || m.player2Name === p.name);
+                let gf = 0, ga = 0, draws = 0, cleanSheets = 0;
+                pMatches.forEach(m => {
+                    const isP1 = m.player1Name === p.name;
+                    gf += isP1 ? m.player1Goals : m.player2Goals;
+                    ga += isP1 ? m.player2Goals : m.player1Goals;
+                    if(m.player1Goals === m.player2Goals) draws++;
+                    if((isP1 && m.player2Goals === 0) || (!isP1 && m.player1Goals === 0)) cleanSheets++;
+                });
+                return { name: p.name, played: pMatches.length, gf, ga, draws, cleanSheets, avgTotalGoals: pMatches.length > 0 ? (gf + ga) / pMatches.length : 0, drawPct: pMatches.length > 0 ? (draws/pMatches.length) : 0 };
+            });
+
+            // Glass Cannon
+            const glassCannon = [...playerStats].filter(p => p.played >= 5).sort((a,b) => b.avgTotalGoals - a.avgTotalGoals)[0];
+            if(glassCannon && glassCannon.name === currentPlayerName) {
+                titlesHTML += `<div class="special-title"><span class="title-icon">🗡️</span><div><p class="font-bold">The Glass Cannon</p><p class="text-sm text-gray-500">Highest average goals in matches (for + against).</p></div></div>`;
+            }
+
+            // The Fortress
+            const fortress = [...playerStats].filter(p => p.played >= 5).sort((a,b) => b.cleanSheets - a.cleanSheets)[0];
+            if(fortress && fortress.name === currentPlayerName && fortress.cleanSheets > 0) {
+                 titlesHTML += `<div class="special-title"><span class="title-icon">🏰</span><div><p class="font-bold">The Fortress</p><p class="text-sm text-gray-500">Most clean sheets across all leagues.</p></div></div>`;
+            }
+            
+            // The Pacifist
+            const pacifist = [...playerStats].filter(p => p.played >= 5).sort((a,b) => b.drawPct - a.drawPct)[0];
+            if(pacifist && pacifist.name === currentPlayerName && pacifist.draws > 0) {
+                 titlesHTML += `<div class="special-title"><span class="title-icon">🕊️</span><div><p class="font-bold">The Pacifist</p><p class="text-sm text-gray-500">Highest percentage of matches ending in a draw.</p></div></div>`;
+            }
+
+            // Giant Slayer
+            const champions = new Set(allHonors.filter(h => h.award === 'Gold Medal').map(h => `${h.playerName}-${h.leagueName}`));
+            const wins = allMatches.filter(m => (m.player1Name === currentPlayerName && m.player1Goals > m.player2Goals) || (m.player2Name === currentPlayerName && m.player2Goals > m.player1Goals));
+            let isGiantSlayer = false;
+            for(const win of wins) {
+                const opponent = win.player1Name === currentPlayerName ? win.player2Name : win.player1Name;
+                if(champions.has(`${opponent}-${win.league}`)) {
+                    isGiantSlayer = true;
+                    break;
+                }
+            }
+            if(isGiantSlayer){
+                 titlesHTML += `<div class="special-title"><span class="title-icon">👑</span><div><p class="font-bold">The Giant Slayer</p><p class="text-sm text-gray-500">Has defeated a reigning league champion.</p></div></div>`;
+            }
+
+            specialTitlesEl.innerHTML = titlesHTML || '<p>No special titles earned yet.</p>';
         }
 
         document.addEventListener('DOMContentLoaded', startApp);
