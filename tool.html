@@ -13,21 +13,42 @@
         button { background-color: #00b894; color: white; font-weight: 500; cursor: pointer; padding: 1rem; border-radius: 0.5rem; width: 100%; transition: background-color 0.2s; }
         button:hover { background-color: #00a884; }
         button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="text-3xl font-extrabold text-center">Club Data Migration Tool</h1>
-        <p class="my-4 text-center text-gray-600">
-            This tool will find all club names from your old "Club Assignments" and add them to the new "Clubs" database. This is a safe, one-time action needed to make your old data compatible with the new system.
-        </p>
-        <button id="migrateButton">Migrate Old Clubs</button>
-        <p id="statusMessage" class="text-center mt-4 font-bold"></p>
-        <p class="text-center mt-4"><a href="admin.html" class="text-green-500 hover:underline">← Go to Admin Panel</a></p>
+        <div id="loginSection">
+             <h1 class="text-3xl font-extrabold text-center">Admin Login Required</h1>
+             <p class="my-4 text-center text-gray-600">Please log in to run the migration tool.</p>
+             <form id="loginForm" class="max-w-sm mx-auto">
+                <div class="mb-4">
+                    <label for="email" class="block mb-2">Email</label>
+                    <input type="email" id="email" required class="w-full p-2 border rounded">
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block mb-2">Password</label>
+                    <input type="password" id="password" required class="w-full p-2 border rounded">
+                </div>
+                <button type="submit" class="w-full">Login</button>
+                <p id="loginError" class="text-red-500 text-center mt-4 hidden"></p>
+             </form>
+        </div>
+        
+        <div id="migrationSection" class="hidden">
+            <h1 class="text-3xl font-extrabold text-center">Club Data Migration Tool</h1>
+            <p class="my-4 text-center text-gray-600">
+                This tool will find all club names from your old "Club Assignments" and add them to the new "Clubs" database. This is a safe, one-time action needed to make your old data compatible with the new system.
+            </p>
+            <button id="migrateButton">Migrate Old Clubs</button>
+            <p id="statusMessage" class="text-center mt-4 font-bold"></p>
+            <p class="text-center mt-4"><a href="admin.html" class="text-green-500 hover:underline">← Go to Admin Panel</a></p>
+        </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, getDocs, writeBatch, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -40,23 +61,64 @@
           measurementId: "G-QJCY28B9HM"
         };
         
+        const adminUID = "ujMJ9cUFxxguzNmezN6iF2TQNN52";
+
+        const loginSection = document.getElementById('loginSection');
+        const loginForm = document.getElementById('loginForm');
+        const loginError = document.getElementById('loginError');
+        const migrationSection = document.getElementById('migrationSection');
         const migrateButton = document.getElementById('migrateButton');
         const statusMessage = document.getElementById('statusMessage');
         
+        let db, auth;
+
+        async function startApp() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                onAuthStateChanged(auth, user => {
+                    if (user && user.uid === adminUID) {
+                        loginSection.classList.add('hidden');
+                        migrationSection.classList.remove('hidden');
+                    } else {
+                        loginSection.classList.remove('hidden');
+                        migrationSection.classList.add('hidden');
+                    }
+                });
+            } catch (error) {
+                 console.error("Initialization failed:", error);
+                 loginError.textContent = "Initialization failed. Check console.";
+                 loginError.classList.remove('hidden');
+            }
+        }
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            loginError.classList.add('hidden');
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                // Auth state change will handle showing the migration tool
+            } catch (error) {
+                console.error("Login failed:", error);
+                loginError.textContent = "Login failed. Please check credentials.";
+                loginError.classList.remove('hidden');
+            }
+        });
+
         async function startMigration() {
             migrateButton.disabled = true;
             migrateButton.textContent = 'Migrating...';
             statusMessage.textContent = '';
 
             try {
-                const app = initializeApp(firebaseConfig);
-                const db = getFirestore(app);
-
-                // 1. Get all existing clubs to avoid duplicates
                 const clubsSnapshot = await getDocs(collection(db, 'clubs'));
                 const existingClubs = new Set(clubsSnapshot.docs.map(d => d.data().name));
 
-                // 2. Get all old club assignments
                 const assignmentsSnapshot = await getDocs(collection(db, 'clubAssignments'));
                 const uniqueClubNames = new Set();
                 assignmentsSnapshot.forEach(doc => {
@@ -74,7 +136,6 @@
                     return;
                 }
 
-                // 3. Create new club documents for any unique names
                 const batch = writeBatch(db);
                 uniqueClubNames.forEach(clubName => {
                     const newClubRef = doc(collection(db, 'clubs'));
@@ -95,6 +156,7 @@
         }
 
         migrateButton.addEventListener('click', startMigration);
+        document.addEventListener('DOMContentLoaded', startApp);
     </script>
 </body>
 </html>
