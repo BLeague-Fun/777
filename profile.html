@@ -134,10 +134,9 @@
             try {
                 const app = initializeApp(firebaseConfig);
                 const auth = getAuth(app);
-                await signInAnonymously(auth); // FIX: Authenticate the user anonymously
+                await signInAnonymously(auth); 
                 const db = getFirestore(app);
 
-                // Fetch all necessary data
                 const playersSnapshot = await getDocs(query(collection(db, 'players'), where('name', '==', playerName)));
                 const matchesSnapshot = await getDocs(query(collection(db, 'matches'), where('status', '==', 'completed')));
                 const honorsSnapshot = await getDocs(query(collection(db, 'honors'), where('playerName', '==', playerName)));
@@ -172,27 +171,45 @@
             const playerMatches = allMatches.filter(m => m.player1Name === playerName || m.player2Name === playerName);
             
             let wins = 0, losses = 0, draws = 0, gf = 0, ga = 0, biggestWin = { diff: 0, score: 'N/A' };
+            const lossesTo = {};
+
             playerMatches.forEach(m => {
                 const isPlayer1 = m.player1Name === playerName;
                 const pGoals = isPlayer1 ? m.player1Goals : m.player2Goals;
                 const oGoals = isPlayer1 ? m.player2Goals : m.player1Goals;
+                const opponentName = isPlayer1 ? m.player2Name : m.player1Name;
+
                 gf += pGoals; ga += oGoals;
+                
                 if (pGoals > oGoals) {
                     wins++;
                     if (pGoals - oGoals > biggestWin.diff) biggestWin = { diff: pGoals - oGoals, score: `${pGoals} - ${oGoals}` };
+                } else if (oGoals > pGoals) {
+                    losses++;
+                    lossesTo[opponentName] = (lossesTo[opponentName] || 0) + 1;
+                } else {
+                    draws++;
                 }
-                else if (oGoals > pGoals) losses++;
-                else draws++;
             });
             const played = playerMatches.length;
             const winRate = played ? ((wins / played) * 100).toFixed(1) : 0;
             const gpg = played ? (gf / played).toFixed(2) : 0;
+
+            let nemesisName = 'None';
+            let maxLosses = 0;
+            for (const opponent in lossesTo) {
+                if (lossesTo[opponent] > maxLosses) {
+                    maxLosses = lossesTo[opponent];
+                    nemesisName = opponent;
+                }
+            }
 
             careerStatsEl.innerHTML = `
                 <p><strong>Win Rate:</strong> ${winRate}%</p><p><strong>Played:</strong> ${played}</p>
                 <p><strong>Record (W-D-L):</strong> ${wins}-${draws}-${losses}</p><p><strong>Goals per Game:</strong> ${gpg}</p>
                 <p><strong>Goals For:</strong> ${gf}</p><p><strong>Goals Against:</strong> ${ga}</p>
                 <p><strong>Biggest Win:</strong> ${biggestWin.score}</p>
+                <p class="col-span-2"><strong>Nemesis:</strong> ${nemesisName === 'None' ? 'None' : `${nemesisName} (${maxLosses} losses)`}</p>
             `;
 
             const awardIcons = {
