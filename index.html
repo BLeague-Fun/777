@@ -66,30 +66,6 @@
         tr:hover {
             background-color: #f8f9fa;
         }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
-            justify-content: center;
-            align-items: center;
-            overflow-y: auto;
-        }
-        .modal-content {
-            background-color: #fff;
-            padding: 2rem;
-            border-radius: 0.75rem;
-            border: 1px solid #e9ecef;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            width: 90%;
-            max-width: 600px;
-        }
         .league-tab-button {
             padding: 0.75rem 1.5rem;
             background-color: #e9ecef;
@@ -114,9 +90,14 @@
         .rank-silver { background-color: rgba(192, 192, 192, 0.15); }
         .rank-bronze { background-color: rgba(205, 127, 50, 0.15); }
         .player-name-link {
-            cursor: pointer;
-            text-decoration: underline;
+            text-decoration: none;
             color: #00b894;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .player-name-link:hover {
+            text-decoration: underline;
+            color: #00a884;
         }
         .match-of-the-week-item {
             background-color: rgba(255, 215, 0, 0.1);
@@ -238,11 +219,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Modals -->
-    <div id="playerProfileModal" class="modal">
-         <div id="playerProfileContent" class="modal-content"></div>
-    </div>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -264,8 +240,6 @@
         const adminLink = document.getElementById('adminLink');
         const motwContainer = document.getElementById('motwContainer');
         const matchList = document.getElementById('matchList');
-        const playerProfileModal = document.getElementById('playerProfileModal');
-        const playerProfileContent = document.getElementById('playerProfileContent');
         const h2hPlayer1Select = document.getElementById('h2hPlayer1Select');
         const h2hPlayer2Select = document.getElementById('h2hPlayer2Select');
         const h2hButton = document.getElementById('h2hButton');
@@ -319,7 +293,9 @@
             });
             onSnapshot(collection(db, 'clubAssignments'), snapshot => {
                 clubAssignments = {};
-                snapshot.forEach(doc => { clubAssignments[doc.id] = doc.data(); });
+                snapshot.forEach(doc => {
+                    clubAssignments[doc.id] = doc.data();
+                });
                 renderAllLeagueData();
             });
         }
@@ -428,7 +404,7 @@
                     ${standings.map((p, i) => `
                         <tr class="${getRankClass(i)}">
                             <td>${i + 1}</td>
-                            <td class="player-name-link" data-player-name="${p.player}">${p.player} <span class="streak">${p.streak}</span></td>
+                            <td><a href="profile.html?player=${encodeURIComponent(p.player)}" class="player-name-link">${p.player}</a> <span class="streak">${p.streak}</span></td>
                             <td>${clubAssignments[leagueName]?.[p.player] || 'N/A'}</td>
                             <td>${p.played}</td><td>${p.wins}</td>
                             <td>${p.draws}</td><td>${p.losses}</td><td>${p.gf}</td>
@@ -504,7 +480,7 @@
                     <h2 class="text-2xl mb-4"><span class="icon">⚽</span>Top Goal Scorers</h2>
                     <div class="table-container">
                         <table class="w-full"><thead><tr><th>Rank</th><th>Player</th><th>Goals</th></tr></thead><tbody>
-                            ${topScorers.map((p, i) => `<tr><td>${i+1}</td><td class="player-name-link" data-player-name="${p.player}">${p.player}</td><td class="font-bold">${p.gf}</td></tr>`).join('')}
+                            ${topScorers.map((p, i) => `<tr><td>${i+1}</td><td><a href="profile.html?player=${encodeURIComponent(p.player)}" class="player-name-link">${p.player}</a></td><td class="font-bold">${p.gf}</td></tr>`).join('')}
                         </tbody></table>
                     </div>
                 </div>
@@ -512,7 +488,7 @@
                     <h2 class="text-2xl mb-4"><span class="icon">🛡️</span>Top Defenders</h2>
                     <div class="table-container">
                         <table class="w-full"><thead><tr><th>Rank</th><th>Player</th><th>Goals Against</th></tr></thead><tbody>
-                            ${topDefenders.map((p, i) => `<tr><td>${i+1}</td><td class="player-name-link" data-player-name="${p.player}">${p.player}</td><td class="font-bold">${p.ga}</td></tr>`).join('')}
+                            ${topDefenders.map((p, i) => `<tr><td>${i+1}</td><td><a href="profile.html?player=${encodeURIComponent(p.player)}" class="player-name-link">${p.player}</a></td><td class="font-bold">${p.ga}</td></tr>`).join('')}
                         </tbody></table>
                     </div>
                 </div>
@@ -527,9 +503,9 @@
                     <div class="text-center">
                         <p class="text-lg">${motw.league}</p>
                         <p class="text-3xl font-bold my-2">
-                            <span class="player-name-link" data-player-name="${motw.player1Name}">${motw.player1Name}</span>
+                            <a href="profile.html?player=${encodeURIComponent(motw.player1Name)}" class="player-name-link">${motw.player1Name}</a>
                             <span class="mx-4">${motw.player1Goals} - ${motw.player2Goals}</span>
-                            <span class="player-name-link" data-player-name="${motw.player2Name}">${motw.player2Name}</span>
+                            <a href="profile.html?player=${encodeURIComponent(motw.player2Name)}" class="player-name-link">${motw.player2Name}</a>
                         </p>
                     </div>`;
                 motwContainer.classList.remove('hidden');
@@ -623,49 +599,6 @@
                 </div>
             `;
         });
-
-        document.addEventListener('click', e => {
-            const playerLink = e.target.closest('.player-name-link');
-            if (playerLink) showPlayerProfile(playerLink.dataset.playerName);
-        });
-        
-        function showPlayerProfile(playerName) {
-            const playerMatches = matches.filter(m => m.status === 'completed' && (m.player1Name === playerName || m.player2Name === playerName));
-            let wins = 0, losses = 0, draws = 0, gf = 0, ga = 0, biggestWin = { diff: 0, score: 'N/A' };
-            playerMatches.forEach(m => {
-                const isPlayer1 = m.player1Name === playerName;
-                const pGoals = isPlayer1 ? m.player1Goals : m.player2Goals;
-                const oGoals = isPlayer1 ? m.player2Goals : m.player1Goals;
-                gf += pGoals; ga += oGoals;
-                if (pGoals > oGoals) {
-                    wins++;
-                    if (pGoals - oGoals > biggestWin.diff) biggestWin = { diff: pGoals - oGoals, score: `${pGoals} - ${oGoals}` };
-                }
-                else if (oGoals > pGoals) losses++;
-                else draws++;
-            });
-            const played = playerMatches.length;
-            const winRate = played ? ((wins / played) * 100).toFixed(1) : 0;
-            const gpg = played ? (gf / played).toFixed(2) : 0;
-            
-            playerProfileContent.innerHTML = `
-                <div class="text-left">
-                    <div class="flex justify-between items-center"><h2 class="text-3xl mb-4">${playerName}</h2><button class="cancel-button bg-gray-700 hover:bg-gray-600 p-2 rounded-lg text-white">Close</button></div>
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <p><strong>Win Rate:</strong> ${winRate}%</p><p><strong>Played:</strong> ${played}</p>
-                        <p><strong>Record (W-D-L):</strong> ${wins}-${draws}-${losses}</p><p><strong>Goals per Game:</strong> ${gpg}</p>
-                        <p><strong>Goals For:</strong> ${gf}</p><p><strong>Goals Against:</strong> ${ga}</p>
-                        <p><strong>Biggest Win:</strong> ${biggestWin.score}</p>
-                    </div>
-                    <h3 class="text-xl mb-2">Match History</h3>
-                    <div class="max-h-60 overflow-y-auto">${playerMatches.map(m => {
-                        const p1Club = clubAssignments[m.league]?.[m.player1Name] || '';
-                        const p2Club = clubAssignments[m.league]?.[m.player2Name] || '';
-                        return `<div class="match-item"><span>${m.league}: ${m.player1Name} ${p1Club ? `(${p1Club})` : ''} <b>${m.player1Goals}</b> - <b>${m.player2Goals}</b> ${m.player2Name} ${p2Club ? `(${p2Club})` : ''}</span></div>`
-                    }).join('') || '<p>No matches played.</p>'}</div>
-                </div>`;
-            playerProfileModal.style.display = 'flex';
-        }
         
         document.body.addEventListener('click', (e) => {
             if (e.target.matches('.cancel-button')) {
