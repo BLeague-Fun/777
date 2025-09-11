@@ -308,7 +308,7 @@
                 renderAllLeagueData();
             });
             onSnapshot(collection(db, 'leagues'), snapshot => {
-                leagues = snapshot.docs.map(doc => doc.data().name);
+                leagues = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 renderAllLeagueData();
             });
             onSnapshot(collection(db, 'matches'), snapshot => {
@@ -319,22 +319,22 @@
             });
             onSnapshot(collection(db, 'clubAssignments'), snapshot => {
                 clubAssignments = {};
-                snapshot.forEach(doc => {
-                    clubAssignments[doc.id] = doc.data();
-                });
+                snapshot.forEach(doc => { clubAssignments[doc.id] = doc.data(); });
                 renderAllLeagueData();
             });
         }
 
         function renderAllLeagueData() {
             if (!leagues.length) return;
-            const activeLeague = document.querySelector('.league-tab-button.active')?.dataset.league || leagues[0];
+            const leagueNames = leagues.map(l => l.name);
+            const activeLeague = document.querySelector('.league-tab-button.active')?.dataset.league || (leagueNames.length > 0 ? leagueNames[0] : null);
+
             leagueTabsContainer.innerHTML = '';
             leagueContentContainer.innerHTML = '';
             Object.values(chartInstances).forEach(chart => chart.destroy());
             chartInstances = {};
 
-            leagues.forEach(league => {
+            leagueNames.forEach(league => {
                 const tabButton = document.createElement('button');
                 tabButton.className = 'league-tab-button';
                 tabButton.textContent = league;
@@ -348,16 +348,16 @@
                 contentDiv.className = 'league-content';
                 if (league !== activeLeague) contentDiv.classList.add('hidden');
                 
-                const leagueMatches = matches.filter(m => m.league === league).sort((a,b) => a.timestamp - b.timestamp);
-                const leaguePlayers = [...new Set(leagueMatches.flatMap(m => [m.player1Name, m.player2Name]))];
+                const completedMatches = matches.filter(m => m.league === league && m.status === 'completed').sort((a,b) => a.timestamp - b.timestamp);
+                const leaguePlayers = [...new Set(completedMatches.flatMap(m => [m.player1Name, m.player2Name]))];
                 
-                const standings = calculateLeagueStats(leagueMatches, leaguePlayers);
+                const standings = calculateLeagueStats(completedMatches, leaguePlayers);
                 contentDiv.innerHTML += generateStandingsHTML(league, standings);
                 
-                const { topScorers, topDefenders } = calculateTopPlayers(leagueMatches, leaguePlayers);
+                const { topScorers, topDefenders } = calculateTopPlayers(completedMatches, leaguePlayers);
                 contentDiv.innerHTML += generateTopPlayersHTML(topScorers, topDefenders);
                 
-                const chartData = calculatePlayerProgress(leagueMatches, leaguePlayers);
+                const chartData = calculatePlayerProgress(completedMatches, leaguePlayers);
                 contentDiv.innerHTML += `<div class="stats-section"><h2 class="text-2xl mb-4"><span class="icon">📈</span>Points Progression</h2><canvas id="chart-${league}"></canvas></div>`;
 
                 leagueContentContainer.appendChild(contentDiv);
@@ -539,7 +539,7 @@
         }
 
         function renderMatchList() {
-            matchList.innerHTML = [...matches].sort((a,b) => b.timestamp - a.timestamp).map(m => `
+            matchList.innerHTML = [...matches].filter(m => m.status === 'completed').sort((a,b) => b.timestamp - a.timestamp).map(m => `
                 <div class="match-item ${m.isMOTW ? 'match-of-the-week-item' : ''}">
                     <span>${m.league}: ${m.player1Name} <b>${m.player1Goals}</b> - <b>${m.player2Goals}</b> ${m.player2Name}</span>
                 </div>`).join('') || '<p>No matches in the archive.</p>';
@@ -561,6 +561,7 @@
             }
 
             const h2hMatches = matches.filter(m => 
+                m.status === 'completed' &&
                 ((m.player1Name === p1 && m.player2Name === p2) || (m.player1Name === p2 && m.player2Name === p1))
             );
 
@@ -629,7 +630,7 @@
         });
         
         function showPlayerProfile(playerName) {
-            const playerMatches = matches.filter(m => m.player1Name === playerName || m.player2Name === playerName);
+            const playerMatches = matches.filter(m => m.status === 'completed' && (m.player1Name === playerName || m.player2Name === playerName));
             let wins = 0, losses = 0, draws = 0, gf = 0, ga = 0, biggestWin = { diff: 0, score: 'N/A' };
             playerMatches.forEach(m => {
                 const isPlayer1 = m.player1Name === playerName;
