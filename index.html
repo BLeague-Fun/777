@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FC 2025 League Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117;
+            color: #c9d1d9;
+        }
+        .container {
+            max-width: 90%;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: #161b22;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #58a6ff;
+            text-align: center;
+            font-weight: 700;
+        }
+        .form-section, .standings-section, .archive-section {
+            background-color: #0d1117;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-top: 1.5rem;
+            border: 1px solid #30363d;
+        }
+        .form-section h2, .standings-section h2, .archive-section h2 {
+            margin-top: 0;
+            color: #c9d1d9;
+            text-align: left;
+        }
+        #addMatchForm {
+            display: grid;
+            grid-template-columns: 1fr 0.5fr 0.2fr 0.5fr 1fr;
+            gap: 0.75rem;
+            align-items: center;
+        }
+        input, button, select {
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #30363d;
+            background-color: #010409;
+            color: #c9d1d9;
+            transition: all 0.2s;
+        }
+        input:focus, button:hover, select:focus {
+            border-color: #58a6ff;
+            box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.5);
+            outline: none;
+        }
+        button {
+            background-color: #238636;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2ea043;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #30363d;
+        }
+        th {
+            background-color: #1f2730;
+            color: #c9d1d9;
+            font-weight: 500;
+        }
+        tr:hover {
+            background-color: #1f2730;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #161b22;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            border: 1px solid #30363d;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .modal-content p {
+            margin-bottom: 1.5rem;
+        }
+        .modal-buttons button {
+            margin: 0 0.5rem;
+            padding: 0.75rem 1.5rem;
+        }
+        .modal-buttons .confirm {
+            background-color: #e54848;
+        }
+        .modal-buttons .confirm:hover {
+            background-color: #f25757;
+        }
+        .match-item, .player-item, .league-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #30363d;
+        }
+        .match-item button, .player-item button, .league-item button {
+            background-color: transparent;
+            border: none;
+            color: #e54848;
+            cursor: pointer;
+            padding: 0.25rem;
+            transition: color 0.2s;
+        }
+        .match-item button:hover, .player-item button:hover, .league-item button:hover {
+            color: #f25757;
+        }
+        @media (max-width: 768px) {
+            #addMatchForm {
+                grid-template-columns: 1fr;
+            }
+            #addMatchForm span {
+                text-align: center;
+            }
+        }
+        .tab-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            background-color: #30363d;
+            border: 1px solid #30363d;
+            border-radius: 0.5rem 0.5rem 0 0;
+            color: #c9d1d9;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .tab-button.active {
+            background-color: #0d1117;
+            border-bottom: 1px solid transparent;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1 class="text-4xl">FC 2025 League Tracker</h1>
+        <p class="text-center text-sm mt-2 text-gray-500">Your User ID: <span id="userIdDisplay">Loading...</span></p>
+
+        <div class="tab-buttons">
+            <button class="tab-button active" onclick="showTab('matches')">Matches</button>
+            <button class="tab-button" onclick="showTab('setup')">Setup</button>
+        </div>
+        
+        <div id="matchesTab" class="tab-content">
+            <div class="form-section">
+                <h2 class="text-2xl mb-4">Add a Match Result</h2>
+                <form id="addMatchForm">
+                    <select id="leagueSelect" required class="w-full"></select>
+                    <select id="player1Select" required class="w-full"></select>
+                    <input type="number" id="player1Goals" placeholder="Goals" required class="w-full">
+                    <span class="text-center font-bold text-gray-500 text-lg">vs</span>
+                    <input type="number" id="player2Goals" placeholder="Goals" required class="w-full">
+                    <select id="player2Select" required class="w-full"></select>
+                    <button type="submit" class="w-full">Add Match</button>
+                </form>
+            </div>
+            
+            <div class="standings-section">
+                <h2 class="text-2xl mb-4">League Standings</h2>
+                <table class="w-full" id="standingsTable">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-2">Rank</th>
+                            <th class="px-4 py-2">Player</th>
+                            <th class="px-4 py-2">P</th>
+                            <th class="px-4 py-2">W</th>
+                            <th class="px-4 py-2">D</th>
+                            <th class="px-4 py-2">L</th>
+                            <th class="px-4 py-2">GF</th>
+                            <th class="px-4 py-2">GA</th>
+                            <th class="px-4 py-2">GD</th>
+                            <th class="px-4 py-2">Pts</th>
+                            <th class="px-4 py-2"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="standingsTableBody">
+                        <!-- Standings will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="archive-section">
+                <h2 class="text-2xl mb-4">Match Archive</h2>
+                <div id="matchList">
+                    <!-- Matches will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <div id="setupTab" class="tab-content hidden">
+            <div class="form-section">
+                <h2 class="text-2xl mb-4">Add a New Player</h2>
+                <form id="addPlayerForm" class="flex flex-col gap-4">
+                    <input type="text" id="playerNameInput" placeholder="Player Name" required>
+                    <button type="submit">Add Player</button>
+                </form>
+                <div id="playerList" class="mt-4"></div>
+            </div>
+
+            <div class="form-section">
+                <h2 class="text-2xl mb-4">Add a New League</h2>
+                <form id="addLeagueForm" class="flex flex-col gap-4">
+                    <input type="text" id="leagueNameInput" placeholder="League Name" required>
+                    <button type="submit">Add League</button>
+                </form>
+                <div id="leagueList" class="mt-4"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- The Confirmation Modal -->
+    <div id="confirmationModal" class="modal">
+        <div class="modal-content">
+            <p id="modalText"></p>
+            <div class="modal-buttons">
+                <button id="cancelDeleteButton" class="bg-gray-700 hover:bg-gray-600">Cancel</button>
+                <button id="confirmDeleteButton" class="confirm hover:bg-red-600">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // IMPORTANT: Global variables for Firebase setup
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        // DOM element references
+        const addMatchForm = document.getElementById('addMatchForm');
+        const standingsTableBody = document.getElementById('standingsTableBody');
+        const matchList = document.getElementById('matchList');
+        const confirmationModal = document.getElementById('confirmationModal');
+        const confirmDeleteButton = document.getElementById('confirmDeleteButton');
+        const cancelDeleteButton = document.getElementById('cancelDeleteButton');
+        const player1Select = document.getElementById('player1Select');
+        const player2Select = document.getElementById('player2Select');
+        const leagueSelect = document.getElementById('leagueSelect');
+        const addPlayerForm = document.getElementById('addPlayerForm');
+        const addLeagueForm = document.getElementById('addLeagueForm');
+        const playerListContainer = document.getElementById('playerList');
+        const leagueListContainer = document.getElementById('leagueList');
+        const modalText = document.getElementById('modalText');
+        const userIdDisplay = document.getElementById('userIdDisplay');
+
+        setLogLevel('debug');
+        let db;
+        let auth;
+        let userId;
+
+        let itemToDelete = null;
+
+        // Data arrays
+        let players = [];
+        let leagues = [];
+        let matches = [];
+        
+        // Initialize Firebase and set up listeners
+        async function initializeApp() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                auth.onAuthStateChanged(user => {
+                    if (user) {
+                        userId = user.uid;
+                        userIdDisplay.textContent = userId;
+                        setupListeners();
+                    } else {
+                        // Signed out
+                    }
+                });
+
+            } catch (error) {
+                console.error("Firebase initialization error:", error);
+            }
+        }
+        
+        function setupListeners() {
+            // Listen for players collection changes
+            onSnapshot(collection(db, `/artifacts/${appId}/public/data/players`), (snapshot) => {
+                players = [];
+                snapshot.forEach((doc) => {
+                    players.push(doc.data().name);
+                });
+                renderPlayerLists();
+            }, (error) => {
+                console.error("Error fetching players: ", error);
+            });
+            
+            // Listen for leagues collection changes
+            onSnapshot(collection(db, `/artifacts/${appId}/public/data/leagues`), (snapshot) => {
+                leagues = [];
+                snapshot.forEach((doc) => {
+                    leagues.push(doc.data().name);
+                });
+                renderLeagueLists();
+            }, (error) => {
+                console.error("Error fetching leagues: ", error);
+            });
+            
+            // Listen for matches collection changes
+            const q = query(collection(db, `/artifacts/${appId}/public/data/matches`));
+            onSnapshot(q, (snapshot) => {
+                matches = [];
+                snapshot.forEach((doc) => {
+                    matches.push({ id: doc.id, ...doc.data() });
+                });
+                calculateStandings();
+                renderMatchList();
+            }, (error) => {
+                console.error("Error fetching matches: ", error);
+            });
+        }
+
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.getElementById(`${tabId}Tab`).classList.remove('hidden');
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.tab-button[onclick="showTab('${tabId}')"]`).classList.add('active');
+        }
+        
+        function renderPlayerLists() {
+            player1Select.innerHTML = '<option value="">Select Player 1</option>';
+            player2Select.innerHTML = '<option value="">Select Player 2</option>';
+            playerListContainer.innerHTML = '';
+
+            if (players.length === 0) {
+                const message = document.createElement('p');
+                message.className = 'text-center text-gray-400 mt-4';
+                message.textContent = 'No players added yet.';
+                playerListContainer.appendChild(message);
+                return;
+            }
+
+            players.forEach((player) => {
+                const option1 = document.createElement('option');
+                option1.value = player;
+                option1.textContent = player;
+                player1Select.appendChild(option1);
+
+                const option2 = document.createElement('option');
+                option2.value = player;
+                option2.textContent = player;
+                player2Select.appendChild(option2);
+
+                const div = document.createElement('div');
+                div.className = 'player-item';
+                div.innerHTML = `
+                    <span class="text-base">${player}</span>
+                    <button data-name="${player}" data-type="player" class="delete-item-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                `;
+                playerListContainer.appendChild(div);
+            });
+        }
+        
+        function renderLeagueLists() {
+            leagueSelect.innerHTML = '<option value="">Select League</option>';
+            leagueListContainer.innerHTML = '';
+
+            if (leagues.length === 0) {
+                const message = document.createElement('p');
+                message.className = 'text-center text-gray-400 mt-4';
+                message.textContent = 'No leagues added yet.';
+                leagueListContainer.appendChild(message);
+                return;
+            }
+
+            leagues.forEach((league) => {
+                const option = document.createElement('option');
+                option.value = league;
+                option.textContent = league;
+                leagueSelect.appendChild(option);
+
+                const div = document.createElement('div');
+                div.className = 'league-item';
+                div.innerHTML = `
+                    <span class="text-base">${league}</span>
+                    <button data-name="${league}" data-type="league" class="delete-item-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                `;
+                leagueListContainer.appendChild(div);
+            });
+        }
+        
+        function calculateStandings() {
+            const playerStats = {};
+
+            matches.forEach(match => {
+                const { player1Name, player1Goals, player2Name, player2Goals } = match;
+
+                // Initialize players if they don't exist
+                if (!playerStats[player1Name]) {
+                    playerStats[player1Name] = {
+                        player: player1Name, played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0, gd: 0, points: 0
+                    };
+                }
+                if (!playerStats[player2Name]) {
+                    playerStats[player2Name] = {
+                        player: player2Name, played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0, gd: 0, points: 0
+                    };
+                }
+
+                // Update common stats for both players
+                playerStats[player1Name].played++;
+                playerStats[player2Name].played++;
+                playerStats[player1Name].gf += player1Goals;
+                playerStats[player1Name].ga += player2Goals;
+                playerStats[player2Name].gf += player2Goals;
+                playerStats[player2Name].ga += player1Goals;
+                playerStats[player1Name].gd = playerStats[player1Name].gf - playerStats[player1Name].ga;
+                playerStats[player2Name].gd = playerStats[player2Name].gf - playerStats[player2Name].ga;
+
+                // Determine winner and update points
+                if (player1Goals > player2Goals) {
+                    playerStats[player1Name].wins++;
+                    playerStats[player1Name].points += 3;
+                    playerStats[player2Name].losses++;
+                } else if (player2Goals > player1Goals) {
+                    playerStats[player2Name].wins++;
+                    playerStats[player2Name].points += 3;
+                    playerStats[player1Name].losses++;
+                } else {
+                    playerStats[player1Name].draws++;
+                    playerStats[player1Name].points += 1;
+                    playerStats[player2Name].draws++;
+                    playerStats[player2Name].points += 1;
+                }
+            });
+
+            // Convert object to array and sort
+            const sortedStandings = Object.values(playerStats).sort((a, b) => {
+                if (a.points !== b.points) return b.points - a.points;
+                if (a.gd !== b.gd) return b.gd - a.gd;
+                return b.gf - a.gf;
+            });
+
+            renderStandingsTable(sortedStandings);
+        }
+
+        function renderStandingsTable(standings) {
+            standingsTableBody.innerHTML = '';
+            if (standings.length === 0) {
+                standingsTableBody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-gray-400">No matches played yet.</td></tr>';
+                return;
+            }
+
+            standings.forEach((player, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-4 py-2">${index + 1}</td>
+                    <td class="px-4 py-2">${player.player}</td>
+                    <td class="px-4 py-2">${player.played}</td>
+                    <td class="px-4 py-2">${player.wins}</td>
+                    <td class="px-4 py-2">${player.draws}</td>
+                    <td class="px-4 py-2">${player.losses}</td>
+                    <td class="px-4 py-2">${player.gf}</td>
+                    <td class="px-4 py-2">${player.ga}</td>
+                    <td class="px-4 py-2">${player.gd}</td>
+                    <td class="px-4 py-2 font-bold">${player.points}</td>
+                    <td class="px-4 py-2"></td>
+                `;
+                standingsTableBody.appendChild(row);
+            });
+        }
+
+        function renderMatchList() {
+            matchList.innerHTML = '';
+            if (matches.length === 0) {
+                matchList.innerHTML = '<p class="text-center text-gray-400">No matches in the archive.</p>';
+                return;
+            }
+
+            matches.forEach((match) => {
+                const div = document.createElement('div');
+                div.className = 'match-item';
+                div.innerHTML = `
+                    <span class="text-base">${match.league} League: ${match.player1Name} <span class="text-sm font-bold">${match.player1Goals}</span> vs <span class="text-sm font-bold">${match.player2Goals}</span> ${match.player2Name}</span>
+                    <button data-id="${match.id}" data-type="match" class="delete-item-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                `;
+                matchList.appendChild(div);
+            });
+        }
+
+        // Add a new player
+        addPlayerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const playerName = document.getElementById('playerNameInput').value.trim();
+            if (playerName && !players.includes(playerName)) {
+                try {
+                    await addDoc(collection(db, `/artifacts/${appId}/public/data/players`), { name: playerName, owner: userId });
+                    addPlayerForm.reset();
+                } catch (e) {
+                    console.error("Error adding player: ", e);
+                }
+            }
+        });
+
+        // Add a new league
+        addLeagueForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const leagueName = document.getElementById('leagueNameInput').value.trim();
+            if (leagueName && !leagues.includes(leagueName)) {
+                try {
+                    await addDoc(collection(db, `/artifacts/${appId}/public/data/leagues`), { name: leagueName, owner: userId });
+                    addLeagueForm.reset();
+                } catch (e) {
+                    console.error("Error adding league: ", e);
+                }
+            }
+        });
+
+        // Add a new match
+        addMatchForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const league = leagueSelect.value;
+            const player1Name = player1Select.value;
+            const player1Goals = parseInt(document.getElementById('player1Goals').value);
+            const player2Goals = parseInt(document.getElementById('player2Goals').value);
+            const player2Name = player2Select.value;
+
+            if (league && player1Name && player2Name && !isNaN(player1Goals) && !isNaN(player2Goals) && player1Name !== player2Name) {
+                const newMatch = { league, player1Name, player1Goals, player2Name, player2Goals, timestamp: Date.now() };
+                try {
+                    await addDoc(collection(db, `/artifacts/${appId}/public/data/matches`), newMatch);
+                    addMatchForm.reset();
+                } catch (e) {
+                    console.error("Error adding match: ", e);
+                }
+            }
+        });
+
+        // Show confirmation modal for any deletion
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.delete-item-btn')) {
+                const button = e.target.closest('.delete-item-btn');
+                itemToDelete = {
+                    id: button.dataset.id,
+                    type: button.dataset.type,
+                    name: button.dataset.name
+                };
+                modalText.textContent = `Are you sure you want to delete this ${itemToDelete.type}?`;
+                confirmationModal.style.display = 'flex';
+            }
+        });
+
+        // Delete the item if confirmed
+        confirmDeleteButton.addEventListener('click', async () => {
+            if (itemToDelete) {
+                try {
+                    if (itemToDelete.type === 'match') {
+                        await deleteDoc(doc(db, `/artifacts/${appId}/public/data/matches`, itemToDelete.id));
+                    } else if (itemToDelete.type === 'player') {
+                        const playerQuery = query(collection(db, `/artifacts/${appId}/public/data/players`), where("name", "==", itemToDelete.name));
+                        const snapshot = await getDocs(playerQuery);
+                        snapshot.forEach(async (doc) => {
+                            await deleteDoc(doc.ref);
+                        });
+                    } else if (itemToDelete.type === 'league') {
+                        const leagueQuery = query(collection(db, `/artifacts/${appId}/public/data/leagues`), where("name", "==", itemToDelete.name));
+                        const snapshot = await getDocs(leagueQuery);
+                        snapshot.forEach(async (doc) => {
+                            await deleteDoc(doc.ref);
+                        });
+                    }
+                } catch (e) {
+                    console.error("Error deleting item: ", e);
+                }
+                itemToDelete = null;
+            }
+            confirmationModal.style.display = 'none';
+        });
+
+        // Hide the modal if canceled
+        cancelDeleteButton.addEventListener('click', () => {
+            itemToDelete = null;
+            confirmationModal.style.display = 'none';
+        });
+
+        initializeApp();
+    </script>
+</body>
+</html>
