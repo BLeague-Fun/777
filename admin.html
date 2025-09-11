@@ -10,61 +10,58 @@
         
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0d1117;
-            background-image: url('https://www.transparenttextures.com/patterns/dark-matter.png');
-            color: #c9d1d9;
+            background-color: #f8f9fa;
+            color: #333;
         }
         .container {
             max-width: 90%;
             margin: 2rem auto;
             padding: 2rem;
-            background-color: rgba(22, 27, 34, 0.85);
+            background-color: rgba(255, 255, 255, 0.85);
             border-radius: 1rem;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(0, 0, 0, 0.1);
         }
         h1, h2 {
-            color: #58a6ff;
+            color: #00b894;
             text-align: center;
             font-weight: 700;
         }
         .form-section {
-            background-color: rgba(13, 17, 23, 0.9);
+            background-color: rgba(255, 255, 255, 0.9);
             padding: 1.5rem;
             border-radius: 0.75rem;
             margin-top: 1.5rem;
-            border: 1px solid #30363d;
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid #e9ecef;
         }
         .form-section h2 {
             margin-top: 0;
-            color: #c9d1d9;
+            color: #00b894;
             text-align: left;
         }
         input, button, select {
             padding: 0.75rem;
             border-radius: 0.5rem;
-            border: 1px solid #30363d;
-            background-color: #010409;
-            color: #c9d1d9;
+            border: 1px solid #dee2e6;
+            background-color: #f6f8fa;
+            color: #333;
             transition: all 0.2s;
         }
         input:focus, button:hover, select:focus {
-            border-color: #58a6ff;
-            box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.5);
+            border-color: #00b894;
+            box-shadow: 0 0 0 2px rgba(0, 184, 148, 0.2);
             outline: none;
         }
         button {
-            background-color: #238636;
+            background-color: #00b894;
             color: white;
             font-weight: 500;
             cursor: pointer;
         }
         button:hover {
-            background-color: #2ea043;
+            background-color: #00a884;
         }
         .delete-item-btn, .edit-item-btn {
             background-color: transparent;
@@ -73,27 +70,27 @@
             padding: 0.25rem;
             transition: color 0.2s;
         }
-        .delete-item-btn { color: #e54848; }
-        .delete-item-btn:hover { color: #f25757; }
-        .edit-item-btn { color: #58a6ff; }
-        .edit-item-btn:hover { color: #79c0ff; }
+        .delete-item-btn { color: #dc3545; }
+        .delete-item-btn:hover { color: #c82333; }
+        .edit-item-btn { color: #00b894; }
+        .edit-item-btn:hover { color: #00a884; }
         .player-item, .league-item, .match-management-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 0.5rem 0;
-            border-bottom: 1px solid #30363d;
+            border-bottom: 1px solid #dee2e6;
         }
         .hidden { display: none; }
-        .star-btn { color: #6e7681; cursor: pointer; background: none; border: none; font-size: 1.5rem; }
-        .star-btn.active { color: #ffd700; }
+        .star-btn { color: #adb5bd; cursor: pointer; background: none; border: none; font-size: 1.5rem; }
+        .star-btn.active { color: #ffc107; }
         .modal {
             display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
             background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
             justify-content: center; align-items: center; overflow-y: auto;
         }
         .modal-content {
-            background-color: #161b22; padding: 2rem; border-radius: 0.75rem; border: 1px solid #30363d;
+            background-color: #fff; padding: 2rem; border-radius: 0.75rem; border: 1px solid #e9ecef;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); width: 90%; max-width: 500px;
         }
     </style>
@@ -118,7 +115,7 @@
 
         <div id="adminControls" class="hidden">
             <h1 class="text-4xl font-extrabold">Admin Panel</h1>
-            <p class="text-center mt-2"><a href="index.html" class="text-blue-400 hover:underline">← Back to Main Page</a></p>
+            <p class="text-center mt-2"><a href="index.html" class="text-green-500 hover:underline">← Back to Main Page</a></p>
 
             <div class="form-section">
                 <h2 class="text-2xl mb-4">Add a Match Result</h2>
@@ -131,6 +128,15 @@
                     <select id="player2Select" required class="w-full"></select>
                     <button type="submit" class="w-full md:col-span-5">Add Match</button>
                 </form>
+            </div>
+
+            <div class="form-section">
+                <h2 class="text-2xl mb-4">Manage Club Assignments</h2>
+                <div class="flex flex-col gap-4">
+                    <select id="clubLeagueSelect" class="w-full"></select>
+                    <div id="clubAssignmentsContainer" class="max-h-72 overflow-y-auto"></div>
+                    <button id="saveClubAssignments" class="w-full">Save Assignments</button>
+                </div>
             </div>
 
             <div class="form-section">
@@ -159,7 +165,6 @@
         </div>
     </div>
     
-    <!-- Edit Match Modal -->
     <div id="editMatchModal" class="modal">
         <div class="modal-content">
             <h2 class="text-2xl mb-4">Edit Match Score</h2>
@@ -187,7 +192,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, addDoc, deleteDoc, updateDoc, onSnapshot, collection, query, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, addDoc, deleteDoc, updateDoc, setDoc, onSnapshot, collection, query, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyBvXdFou9yUlERH-iaICi6JjNChw1rC2O0",
@@ -199,7 +204,7 @@
           measurementId: "G-QJCY28B9HM"
         };
         
-        const adminUID = "ujMJ9cUFxxguzNmezN6iF2TQNN52";
+        const adminUID = "PASTE_YOUR_ADMIN_USER_ID_HERE";
 
         const loginSection = document.getElementById('loginSection');
         const loginForm = document.getElementById('loginForm');
@@ -216,9 +221,12 @@
         const matchManagementList = document.getElementById('matchManagementList');
         const editMatchModal = document.getElementById('editMatchModal');
         const editMatchForm = document.getElementById('editMatchForm');
+        const clubLeagueSelect = document.getElementById('clubLeagueSelect');
+        const clubAssignmentsContainer = document.getElementById('clubAssignmentsContainer');
+        const saveClubAssignments = document.getElementById('saveClubAssignments');
 
         let db, auth, userId;
-        let players = [], leagues = [], matches = [];
+        let players = [], leagues = [], matches = [], clubAssignments = {};
 
         async function startApp() {
             try {
@@ -268,10 +276,17 @@
             onSnapshot(collection(db, 'leagues'), snapshot => {
                 leagues = snapshot.docs.map(doc => doc.data().name);
                 renderLeagueLists();
+                renderClubLeagueSelect();
             });
             onSnapshot(collection(db, 'matches'), snapshot => {
                 matches = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderMatchManagementList();
+                renderClubAssignments();
+            });
+            onSnapshot(collection(db, 'clubAssignments'), snapshot => {
+                clubAssignments = {};
+                snapshot.forEach(doc => { clubAssignments[doc.id] = doc.data(); });
+                renderClubAssignments();
             });
         }
         
@@ -309,6 +324,43 @@
                 </div>
             `).join('') || '<p>No matches to manage yet.</p>';
         }
+
+        function renderClubLeagueSelect() {
+            clubLeagueSelect.innerHTML = `<option value="">Select a League to Assign Clubs</option>${leagues.map(l => `<option value="${l}">${l}</option>`).join('')}`;
+        }
+        
+        clubLeagueSelect.addEventListener('change', renderClubAssignments);
+
+        function renderClubAssignments() {
+            const selectedLeague = clubLeagueSelect.value;
+            if (!selectedLeague) {
+                clubAssignmentsContainer.innerHTML = '<p>Please select a league.</p>';
+                return;
+            }
+            const leaguePlayers = [...new Set(matches.filter(m => m.league === selectedLeague).flatMap(m => [m.player1Name, m.player2Name]))].sort();
+            const currentAssignments = clubAssignments[selectedLeague] || {};
+
+            clubAssignmentsContainer.innerHTML = leaguePlayers.map(p => `
+                <div class="flex items-center gap-4 mb-2">
+                    <label class="w-1/3 text-right">${p}</label>
+                    <input type="text" data-player="${p}" value="${currentAssignments[p] || ''}" placeholder="Enter club name" class="w-2/3">
+                </div>
+            `).join('');
+        }
+        
+        saveClubAssignments.addEventListener('click', async () => {
+            const selectedLeague = clubLeagueSelect.value;
+            if (!selectedLeague) {
+                alert('Please select a league first.');
+                return;
+            }
+            const assignments = {};
+            document.querySelectorAll('#clubAssignmentsContainer input').forEach(input => {
+                assignments[input.dataset.player] = input.value.trim();
+            });
+            await setDoc(doc(db, 'clubAssignments', selectedLeague), assignments);
+            alert('Club assignments saved!');
+        });
 
         async function toggleMOTW(matchId) {
             const batch = writeBatch(db);
@@ -361,14 +413,10 @@
             }
 
             const editBtn = e.target.closest('.edit-item-btn');
-            if (editBtn) {
-                openEditModal(editBtn.dataset.id);
-            }
+            if (editBtn) openEditModal(editBtn.dataset.id);
             
             const starBtn = e.target.closest('.star-btn');
-            if(starBtn) {
-                toggleMOTW(starBtn.dataset.id);
-            }
+            if(starBtn) toggleMOTW(starBtn.dataset.id);
         });
 
         addPlayerForm.addEventListener('submit', async e => { e.preventDefault(); const pName = document.getElementById('playerNameInput').value.trim(); if (pName && !players.includes(pName)) { await addDoc(collection(db, 'players'), { name: pName, owner: userId }); addPlayerForm.reset(); } });
@@ -383,4 +431,3 @@
     </script>
 </body>
 </html>
-
