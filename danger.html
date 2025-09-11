@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danger Zone - Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #333; }
+        .container { max-width: 90%; margin: 2rem auto; padding: 2rem; background-color: rgba(255, 255, 255, 0.85); border-radius: 1rem; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1); }
+        h1, h2 { color: #dc3545; text-align: center; font-weight: 700; }
+        .danger-zone { border: 2px solid #dc3545; padding: 1.5rem; border-radius: 0.75rem; margin-top: 1.5rem; background-color: rgba(220, 53, 69, 0.05); }
+        .danger-zone h2 { text-align: left; }
+        input, button, select { padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #dee2e6; background-color: #f6f8fa; color: #333; }
+        button.delete-button { background-color: #dc3545; color: white; font-weight: bold; }
+        button.delete-button:hover { background-color: #c82333; }
+        .hidden { display: none; }
+        .preview-item { border-bottom: 1px solid #e9ecef; padding: 0.25rem 0; }
+        .preview-item:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loginSection">
+            <h1 class="text-4xl font-extrabold">Admin Login Required</h1>
+            <form id="loginForm" class="mt-4 max-w-sm mx-auto bg-white p-6 rounded-lg border">
+                <div class="mb-4"><label for="email" class="block mb-2">Email</label><input type="email" id="email" required class="w-full"></div>
+                <div class="mb-6"><label for="password" class="block mb-2">Password</label><input type="password" id="password" required class="w-full"></div>
+                <button type="submit" class="w-full" style="background-color: #00b894;">Login</button>
+                <p id="loginError" class="text-red-500 text-center mt-4 hidden"></p>
+            </form>
+        </div>
+
+        <div id="adminControls" class="hidden">
+            <h1 class="text-4xl font-extrabold">Danger Zone</h1>
+            <p class="text-center mt-2"><a href="admin.html" class="text-green-500 hover:underline">← Back to Admin Panel</a></p>
+
+            <div class="danger-zone">
+                <h2 class="text-2xl mb-4">Delete a League</h2>
+                <p class="mb-4">This is an irreversible action. Deleting a league will also permanently delete all of its matches, honors, and club assignments.</p>
+                <div class="flex flex-col gap-4">
+                    <select id="leagueSelect" class="w-full">
+                        <option value="">-- Select a League to Delete --</option>
+                    </select>
+                    <div id="deletePreview" class="hidden">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="font-bold text-lg mb-2">Matches to be Deleted:</h3>
+                                <div id="leagueMatchesPreview" class="text-sm p-2 border rounded max-h-48 overflow-y-auto"></div>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg mb-2">Honors to be Deleted:</h3>
+                                <div id="leagueHonorsPreview" class="text-sm p-2 border rounded max-h-48 overflow-y-auto"></div>
+                            </div>
+                        </div>
+                        <button id="deleteLeagueButton" class="w-full mt-4 delete-button">Permanently Delete League and All Its Data</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, collection, query, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBvXdFou9yUlERH-iaICi6JjNChw1rC2O0",
+          authDomain: "fun-league-6edd6.firebaseapp.com",
+          projectId: "fun-league-6edd6",
+          storageBucket: "fun-league-6edd6.appspot.com",
+          messagingSenderId: "132854098604",
+          appId: "1:132854098604:web:0c0e829ac99624dac38d09",
+          measurementId: "G-QJCY28B9HM"
+        };
+        
+        const adminUID = "ujMJ9cUFxxguzNmezN6iF2TQNN52";
+
+        const loginSection = document.getElementById('loginSection');
+        const loginForm = document.getElementById('loginForm');
+        const loginError = document.getElementById('loginError');
+        const adminControls = document.getElementById('adminControls');
+        const leagueSelect = document.getElementById('leagueSelect');
+        const deletePreview = document.getElementById('deletePreview');
+        const leagueMatchesPreview = document.getElementById('leagueMatchesPreview');
+        const leagueHonorsPreview = document.getElementById('leagueHonorsPreview');
+        const deleteLeagueButton = document.getElementById('deleteLeagueButton');
+        
+        let db, auth;
+        let leagues = [], matches = [], honors = [];
+
+        async function startApp() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                
+                onAuthStateChanged(auth, user => {
+                    if (user && user.uid === adminUID) {
+                        loginSection.classList.add('hidden');
+                        adminControls.classList.remove('hidden');
+                        fetchAllData();
+                    } else {
+                        loginSection.classList.remove('hidden');
+                        adminControls.classList.add('hidden');
+                    }
+                });
+            } catch (error) {
+                console.error("Initialization error:", error);
+            }
+        }
+        
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            loginError.classList.add('hidden');
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error("Login failed:", error);
+                loginError.textContent = "Login failed. Please check credentials.";
+                loginError.classList.remove('hidden');
+            }
+        });
+
+        async function fetchAllData() {
+            const leaguesSnapshot = await getDocs(collection(db, 'leagues'));
+            leagues = leaguesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            const matchesSnapshot = await getDocs(collection(db, 'matches'));
+            matches = matchesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            const honorsSnapshot = await getDocs(collection(db, 'honors'));
+            honors = honorsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            renderLeagueSelect();
+        }
+
+        function renderLeagueSelect() {
+            leagueSelect.innerHTML = `<option value="">-- Select a League to Delete --</option>${leagues.map(l => `<option value="${l.name}">${l.name}</option>`).join('')}`;
+        }
+
+        leagueSelect.addEventListener('change', () => {
+            const leagueName = leagueSelect.value;
+            if (!leagueName) {
+                deletePreview.classList.add('hidden');
+                return;
+            }
+
+            const matchesToDelete = matches.filter(m => m.league === leagueName);
+            const honorsToDelete = honors.filter(h => h.leagueName === leagueName);
+
+            leagueMatchesPreview.innerHTML = matchesToDelete.length > 0 ? matchesToDelete.map(m => `<div class="preview-item">${m.player1Name} vs ${m.player2Name}</div>`).join('') : '<p>No matches found.</p>';
+            leagueHonorsPreview.innerHTML = honorsToDelete.length > 0 ? honorsToDelete.map(h => `<div class="preview-item">${h.playerName} - ${h.award}</div>`).join('') : '<p>No honors found.</p>';
+            
+            deletePreview.classList.remove('hidden');
+        });
+
+        deleteLeagueButton.addEventListener('click', async () => {
+            const leagueName = leagueSelect.value;
+            if (!leagueName) return;
+
+            const leagueToDelete = leagues.find(l => l.name === leagueName);
+            if (!leagueToDelete) return;
+
+            if (confirm(`FINAL WARNING:\n\nAre you sure you want to permanently delete the "${leagueName}" league and all its associated data (matches, honors, club assignments)? This cannot be undone.`)) {
+                try {
+                    const batch = writeBatch(db);
+
+                    // Delete matches for the league
+                    const matchesQuery = query(collection(db, "matches"), where("league", "==", leagueName));
+                    const matchesSnapshot = await getDocs(matchesQuery);
+                    matchesSnapshot.forEach(doc => batch.delete(doc.ref));
+
+                    // Delete honors for the league
+                    const honorsQuery = query(collection(db, "honors"), where("leagueName", "==", leagueName));
+                    const honorsSnapshot = await getDocs(honorsQuery);
+                    honorsSnapshot.forEach(doc => batch.delete(doc.ref));
+                    
+                    // Delete club assignments for the league
+                    const clubAssignmentRef = doc(db, 'clubAssignments', leagueName);
+                    batch.delete(clubAssignmentRef);
+
+                    // Delete the league itself
+                    batch.delete(doc(db, "leagues", leagueToDelete.id));
+
+                    await batch.commit();
+                    
+                    alert(`Successfully deleted the "${leagueName}" league and all its data.`);
+                    window.location.reload();
+
+                } catch (error) {
+                    console.error("Deletion failed:", error);
+                    alert("An error occurred during deletion. Check the console.");
+                }
+            }
+        });
+        
+        document.addEventListener('DOMContentLoaded', startApp);
+    </script>
+</body>
+</html>
