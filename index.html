@@ -261,7 +261,6 @@
         
         const adminUID = "ujMJ9cUFxxguzNmezN6iF2TQNN52";
 
-        // DOM element references
         const adminLink = document.getElementById('adminLink');
         const motwContainer = document.getElementById('motwContainer');
         const matchList = document.getElementById('matchList');
@@ -276,7 +275,7 @@
         const userIdDisplay = document.getElementById('userIdDisplay');
         
         let db, auth, userId;
-        let players = [], leagues = [], matches = [];
+        let players = [], leagues = [], matches = [], clubAssignments = {};
         let chartInstances = {};
         const chartColors = ['#00b894', '#20c997', '#6c757d', '#17a2b8', '#fd7e14', '#6610f2'];
 
@@ -317,6 +316,13 @@
                 renderMatchList();
                 renderAllLeagueData();
                 renderMOTW();
+            });
+            onSnapshot(collection(db, 'clubAssignments'), snapshot => {
+                clubAssignments = {};
+                snapshot.forEach(doc => {
+                    clubAssignments[doc.id] = doc.data();
+                });
+                renderAllLeagueData();
             });
         }
 
@@ -417,12 +423,13 @@
                 <h2 class="text-2xl mb-4"><span class="icon">🏆</span>${leagueName} Standings</h2>
                 <div class="table-container">
                     <table class="w-full"><thead><tr>
-                        <th>Rank</th><th>Player</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
+                        <th>Rank</th><th>Player</th><th>Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
                     </tr></thead><tbody>
                     ${standings.map((p, i) => `
                         <tr class="${getRankClass(i)}">
                             <td>${i + 1}</td>
                             <td class="player-name-link" data-player-name="${p.player}">${p.player} <span class="streak">${p.streak}</span></td>
+                            <td>${clubAssignments[leagueName]?.[p.player] || 'N/A'}</td>
                             <td>${p.played}</td><td>${p.wins}</td>
                             <td>${p.draws}</td><td>${p.losses}</td><td>${p.gf}</td>
                             <td>${p.ga}</td><td>${p.gd}</td><td class="font-bold">${p.points}</td>
@@ -650,7 +657,11 @@
                         <p><strong>Biggest Win:</strong> ${biggestWin.score}</p>
                     </div>
                     <h3 class="text-xl mb-2">Match History</h3>
-                    <div class="max-h-60 overflow-y-auto">${playerMatches.map(m => `<div class="match-item"><span>${m.league}: ${m.player1Name} <b>${m.player1Goals}</b> - <b>${m.player2Goals}</b> ${m.player2Name}</span></div>`).join('') || '<p>No matches played.</p>'}</div>
+                    <div class="max-h-60 overflow-y-auto">${playerMatches.map(m => {
+                        const p1Club = clubAssignments[m.league]?.[m.player1Name] || '';
+                        const p2Club = clubAssignments[m.league]?.[m.player2Name] || '';
+                        return `<div class="match-item"><span>${m.league}: ${m.player1Name} ${p1Club ? `(${p1Club})` : ''} <b>${m.player1Goals}</b> - <b>${m.player2Goals}</b> ${m.player2Name} ${p2Club ? `(${p2Club})` : ''}</span></div>`
+                    }).join('') || '<p>No matches played.</p>'}</div>
                 </div>`;
             playerProfileModal.style.display = 'flex';
         }
