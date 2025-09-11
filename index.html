@@ -179,12 +179,16 @@
             text-decoration: underline;
             color: #58a6ff;
         }
-        .match-of-the-week {
+        .match-of-the-week-item {
             background-color: rgba(255, 215, 0, 0.1);
             border-left: 3px solid #ffd700;
         }
-        .star-btn { color: #6e7681; }
+        .star-btn { color: #6e7681; cursor: pointer; }
         .star-btn.active { color: #ffd700; }
+        #motwContainer {
+            border: 1px solid #ffd700;
+            background: linear-gradient(145deg, rgba(255, 215, 0, 0.05), rgba(255, 215, 0, 0.15));
+        }
     </style>
 </head>
 <body>
@@ -199,6 +203,7 @@
         </div>
         
         <div id="matchesTab" class="tab-content">
+            <div id="motwContainer" class="stats-section hidden"></div>
             <div id="leagueTabsContainer" class="league-tabs-container"></div>
             <div id="leagueContentContainer"></div>
 
@@ -285,6 +290,7 @@
         const adminUID = "7ss4Z12tDkgCQB1pevK6gKR1WpI3";
 
         // DOM element references
+        const motwContainer = document.getElementById('motwContainer');
         const matchList = document.getElementById('matchList');
         const confirmationModal = document.getElementById('confirmationModal');
         const playerProfileModal = document.getElementById('playerProfileModal');
@@ -314,6 +320,7 @@
         let itemToDelete = null;
         let players = [], leagues = [], matches = [];
         let chartInstances = {};
+        const chartColors = ['#58a6ff', '#238636', '#e54848', '#a371f7', '#f25757', '#2ea043'];
 
         async function startApp() {
             try {
@@ -353,15 +360,17 @@
                 matches = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderMatchList();
                 renderAllLeagueData();
+                renderMOTW();
             });
         }
 
         function renderAllLeagueData() {
             if (!leagues.length) return;
-
             const activeLeague = document.querySelector('.league-tab-button.active')?.dataset.league || leagues[0];
             leagueTabsContainer.innerHTML = '';
             leagueContentContainer.innerHTML = '';
+            Object.values(chartInstances).forEach(chart => chart.destroy());
+            chartInstances = {};
 
             leagues.forEach(league => {
                 const tabButton = document.createElement('button');
@@ -377,7 +386,7 @@
                 contentDiv.className = 'league-content';
                 if (league !== activeLeague) contentDiv.classList.add('hidden');
                 
-                const leagueMatches = matches.filter(m => m.league === league);
+                const leagueMatches = matches.filter(m => m.league === league).sort((a,b) => a.timestamp - b.timestamp);
                 const leaguePlayers = [...new Set(leagueMatches.flatMap(m => [m.player1Name, m.player2Name]))];
                 
                 const standings = calculateLeagueStats(leagueMatches, leaguePlayers);
@@ -386,10 +395,13 @@
                 const { topScorers, topDefenders } = calculateTopPlayers(leagueMatches, leaguePlayers);
                 contentDiv.innerHTML += generateTopPlayersHTML(topScorers, topDefenders);
 
+                const chartData = calculatePlayerProgress(leagueMatches, leaguePlayers);
+                contentDiv.innerHTML += `<div class="stats-section"><h2 class="text-2xl mb-4">Points Progression</h2><canvas id="chart-${league}"></canvas></div>`;
+
                 leagueContentContainer.appendChild(contentDiv);
                 
-                if (standings.length > 0) {
-                    renderChart(league, standings);
+                if (chartData.datasets.length > 0) {
+                    renderChart(league, chartData);
                 }
             });
              updateH2HDropdowns();
@@ -434,7 +446,6 @@
              if (standings.length === 0) return `<div class="standings-section"><h2 class="text-2xl">${leagueName} Standings</h2><p>No matches played yet in this league.</p></div>`;
              return `<div class="standings-section">
                 <h2 class="text-2xl mb-4">${leagueName} Standings</h2>
-                <canvas id="chart-${leagueName}" class="mb-4"></canvas>
                 <table class="w-full"><thead><tr>
                     <th>Rank</th><th>Player</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
                 </tr></thead><tbody>
@@ -447,26 +458,55 @@
                 </tbody></table></div>`;
         }
 
-        function renderChart(leagueName, standings) {
-            const ctx = document.getElementById(`chart-${leagueName}`).getContext('2d');
-            if (chartInstances[leagueName]) {
-                chartInstances[leagueName].destroy();
-            }
+        function calculatePlayerProgress(leagueMatches, leaguePlayers) {
+            const progressData = { labels: [], datasets: [] };
+            let maxGames = 0;
+
+            leaguePlayers.forEach((player, index) => {
+                const playerMatches = leagueMatches.filter(m => m.player1Name === player || m.player2Name === player);
+                if (playerMatches.length === 0) return;
+
+                let currentPoints = 0;
+                const pointsHistory = [0]; // Start at 0 points before game 1
+
+                playerMatches.forEach(m => {
+                    const isPlayer1 = m.player1Name === player;
+                    const pGoals = isPlayer1 ? m.player1Goals : m.player2Goals;
+                    const oGoals = isPlayer1 ? m.player2Goals : m.player1Goals;
+                    if (pGoals > oGoals) currentPoints += 3;
+                    else if (pGoals === oGoals) currentPoints += 1;
+                    pointsHistory.push(currentPoints);
+                });
+
+                progressData.datasets.push({
+                    label: player,
+                    data: pointsHistory,
+                    borderColor: chartColors[index % chartColors.length],
+                    backgroundColor: chartColors[index % chartColors.length] + '33', // semi-transparent fill
+                    fill: false,
+                    tension: 0.1
+                });
+                
+                if (playerMatches.length > maxGames) maxGames = playerMatches.length;
+            });
+
+            progressData.labels = Array.from({ length: maxGames + 1 }, (_, i) => `Game ${i}`);
+            return progressData;
+        }
+
+        function renderChart(leagueName, chartData) {
+            const ctx = document.getElementById(`chart-${leagueName}`)?.getContext('2d');
+            if(!ctx) return;
+            
             chartInstances[leagueName] = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: standings.map(p => p.player),
-                    datasets: [{
-                        label: 'Points',
-                        data: standings.map(p => p.points),
-                        backgroundColor: standings.map((_, i) => getRankClass(i) ? getRankClass(i).includes('gold') ? '#FFD700' : getRankClass(i).includes('silver') ? '#C0C0C0' : '#CD7F32' : '#58a6ff'),
-                        borderColor: '#30363d',
-                        borderWidth: 1
-                    }]
-                },
+                type: 'line',
+                data: chartData,
                 options: {
-                    scales: { y: { beginAtZero: true, ticks: { color: '#c9d1d9' } }, x: { ticks: { color: '#c9d1d9' } } },
-                    plugins: { legend: { display: false } }
+                    scales: { 
+                        y: { beginAtZero: true, ticks: { color: '#c9d1d9' }, grid: { color: '#30363d'} }, 
+                        x: { ticks: { color: '#c9d1d9' }, grid: { color: '#30363d'} } 
+                    },
+                    plugins: { legend: { labels: { color: '#c9d1d9' } } }
                 }
             });
         }
@@ -505,10 +545,29 @@
             </div>`;
         }
 
+        function renderMOTW() {
+            const motw = matches.find(m => m.isMOTW);
+            if(motw) {
+                motwContainer.innerHTML = `
+                    <h2 class="text-2xl mb-2 text-center text-yellow-400">★ Match of the Week ★</h2>
+                    <div class="text-center">
+                        <p class="text-lg">${motw.league}</p>
+                        <p class="text-3xl font-bold my-2">
+                            <span class="player-name-link" data-player-name="${motw.player1Name}">${motw.player1Name}</span>
+                            <span class="mx-4">${motw.player1Goals} - ${motw.player2Goals}</span>
+                            <span class="player-name-link" data-player-name="${motw.player2Name}">${motw.player2Name}</span>
+                        </p>
+                    </div>`;
+                motwContainer.classList.remove('hidden');
+            } else {
+                motwContainer.classList.add('hidden');
+            }
+        }
+
         function renderMatchList() {
             const isAdmin = userId === adminUID;
             matchList.innerHTML = [...matches].sort((a,b) => b.timestamp - a.timestamp).map(m => `
-                <div class="match-item ${m.isMOTW ? 'match-of-the-week' : ''}">
+                <div class="match-item ${m.isMOTW ? 'match-of-the-week-item' : ''}">
                     <span>${m.league}: ${m.player1Name} <b>${m.player1Goals}</b> - <b>${m.player2Goals}</b> ${m.player2Name}</span>
                     <div class="flex items-center">
                         ${isAdmin ? `<button class="star-btn ${m.isMOTW ? 'active' : ''}" data-id="${m.id}" title="Match of the Week">★</button>` : ''}
