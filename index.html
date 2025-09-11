@@ -11,39 +11,35 @@
         
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0d1117;
-            background-image: url('https://www.transparenttextures.com/patterns/dark-matter.png');
-            color: #c9d1d9;
+            background-color: #f8f9fa;
+            color: #333;
         }
         .container {
             max-width: 90%;
             margin: 2rem auto;
             padding: 2rem;
-            background-color: rgba(22, 27, 34, 0.85);
+            background-color: rgba(255, 255, 255, 0.85);
             border-radius: 1rem;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(0, 0, 0, 0.1);
         }
         h1, h2 {
-            color: #58a6ff;
+            color: #00b894;
             text-align: center;
             font-weight: 700;
         }
         .standings-section, .archive-section, .stats-section {
-            background-color: rgba(13, 17, 23, 0.9);
+            background-color: rgba(255, 255, 255, 0.9);
             padding: 1.5rem;
             border-radius: 0.75rem;
             margin-top: 1.5rem;
-            border: 1px solid #30363d;
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
-            animation: fadeIn 0.5s ease-in-out forwards;
+            border: 1px solid #e9ecef;
         }
         .standings-section h2, .archive-section h2, .stats-section h2 {
             margin-top: 0;
-            color: #c9d1d9;
+            color: #00b894;
             text-align: left;
             display: flex;
             align-items: center;
@@ -60,16 +56,15 @@
         th, td {
             padding: 0.75rem;
             text-align: left;
-            border-bottom: 1px solid #30363d;
+            border-bottom: 1px solid #e9ecef;
             white-space: nowrap;
         }
         th {
-            background-color: #1f2730;
-            color: #c9d1d9;
+            background-color: #f8f9fa;
             font-weight: 500;
         }
         tr:hover {
-            background-color: #1f2730;
+            background-color: #f8f9fa;
         }
         .modal {
             display: none;
@@ -87,32 +82,32 @@
             overflow-y: auto;
         }
         .modal-content {
-            background-color: #161b22;
+            background-color: #fff;
             padding: 2rem;
             border-radius: 0.75rem;
-            border: 1px solid #30363d;
+            border: 1px solid #e9ecef;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             width: 90%;
             max-width: 600px;
         }
         .league-tab-button {
             padding: 0.75rem 1.5rem;
-            background-color: #30363d;
-            border: 1px solid #30363d;
+            background-color: #e9ecef;
+            border: 1px solid #dee2e6;
             border-radius: 0.5rem 0.5rem 0 0;
-            color: #c9d1d9;
+            color: #495057;
             cursor: pointer;
             transition: background-color 0.2s;
         }
         .league-tab-button.active {
-            background-color: rgba(13, 17, 23, 0.9);
-            border-bottom-color: rgba(13, 17, 23, 0.9);
+            background-color: #fff;
+            border-bottom-color: #fff;
         }
         .hidden { display: none; }
         .league-tabs-container {
             display: flex;
             flex-wrap: wrap;
-            border-bottom: 1px solid #30363d;
+            border-bottom: 1px solid #dee2e6;
             margin-top: 1.5rem;
         }
         .rank-gold { background-color: rgba(255, 215, 0, 0.15); }
@@ -121,33 +116,40 @@
         .player-name-link {
             cursor: pointer;
             text-decoration: underline;
-            color: #58a6ff;
+            color: #00b894;
         }
         .match-of-the-week-item {
             background-color: rgba(255, 215, 0, 0.1);
             border-left: 3px solid #ffd700;
         }
         #motwContainer {
-            border: 1px solid #ffd700;
-            background: linear-gradient(145deg, rgba(255, 215, 0, 0.05), rgba(255, 215, 0, 0.15));
+            border: 1px solid #00b894;
+            background: linear-gradient(145deg, rgba(0, 184, 148, 0.05), rgba(0, 184, 148, 0.15));
         }
+        #motwContainer h2 { color: #00b894; }
         #adminLink, #statsLink {
             position: absolute;
             top: 2.5rem;
+            background-color: #00b894;
+            color: white;
         }
+         #adminLink:hover, #statsLink:hover {
+            background-color: #00a884;
+         }
         #adminLink { right: 2.5rem; }
         #statsLink { right: 10.5rem; }
         #h2hButton {
-            background-image: linear-gradient(to right, #0969da, #58a6ff);
+            background-image: linear-gradient(to right, #00a884, #00b894);
             border: none;
             transition: all 0.3s ease;
+            color: white;
         }
         #h2hButton:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(88, 166, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
         }
         #h2hResult {
-            border-top: 1px solid #30363d;
+            border-top: 1px solid #dee2e6;
             padding-top: 1.5rem;
             margin-top: 1.5rem;
             display: grid;
@@ -156,19 +158,19 @@
             gap: 1rem;
         }
         .h2h-player-stats { text-align: center; }
-        .h2h-player-name { font-size: 1.25rem; font-weight: bold; color: #58a6ff; }
-        .h2h-stat-label { font-size: 0.875rem; color: #8b949e; margin-top: 0.5rem; }
-        .h2h-stat-value { font-size: 1.5rem; font-weight: 700; }
+        .h2h-player-name { font-size: 1.25rem; font-weight: bold; color: #00b894; }
+        .h2h-stat-label { font-size: 0.875rem; color: #6c757d; margin-top: 0.5rem; }
+        .h2h-stat-value { font-size: 1.5rem; font-weight: 700; color: #333 }
         .h2h-vs-divider { text-align: center; }
-        .h2h-vs-divider p:first-child { font-size: 2rem; font-weight: bold; color: #58a6ff; }
+        .h2h-vs-divider p:first-child { font-size: 2rem; font-weight: bold; color: #00b894; }
         
         .table-container {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
         }
         .table-container::-webkit-scrollbar { height: 8px; }
-        .table-container::-webkit-scrollbar-track { background: #1f2730; border-radius: 10px; }
-        .table-container::-webkit-scrollbar-thumb { background: #58a6ff; border-radius: 10px; }
+        .table-container::-webkit-scrollbar-track { background: #e9ecef; border-radius: 10px; }
+        .table-container::-webkit-scrollbar-thumb { background: #00b894; border-radius: 10px; }
         
         .league-content {
             animation: crossFade 0.4s ease-in-out;
@@ -183,7 +185,6 @@
             to { opacity: 1; }
         }
 
-        /* Mobile Responsive Styles */
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
@@ -210,8 +211,8 @@
 <body>
 
     <div class="container relative">
-        <a id="statsLink" href="stats.html" class="bg-purple-600 hover:bg-purple-500 p-2 rounded-lg text-white no-underline">Overall Stats</a>
-        <a id="adminLink" href="admin.html" class="hidden bg-blue-600 hover:bg-blue-500 p-2 rounded-lg text-white no-underline">Admin Panel</a>
+        <a id="statsLink" href="stats.html" class="p-2 rounded-lg text-white no-underline">Overall Stats</a>
+        <a id="adminLink" href="admin.html" class="hidden p-2 rounded-lg text-white no-underline">Admin Panel</a>
         <h1 class="text-4xl font-extrabold">FC 2025 League Tracker</h1>
         <p class="text-center text-sm mt-2"><span id="userIdDisplay">Loading...</span></p>
 
@@ -223,9 +224,9 @@
              <div class="stats-section">
                 <h2 class="text-2xl mb-4"><span class="icon">⚔️</span>Head-to-Head (All Leagues)</h2>
                 <div class="flex flex-col sm:flex-row items-center gap-4">
-                    <select id="h2hPlayer1Select" class="w-full bg-gray-900 border-gray-700 text-white rounded-md p-2"></select>
+                    <select id="h2hPlayer1Select" class="w-full rounded-md p-2"></select>
                     <span class="font-bold">vs</span>
-                    <select id="h2hPlayer2Select" class="w-full bg-gray-900 border-gray-700 text-white rounded-md p-2"></select>
+                    <select id="h2hPlayer2Select" class="w-full rounded-md p-2"></select>
                     <button id="h2hButton" class="p-2 rounded-md w-full sm:w-auto">Compare</button>
                 </div>
                 <div id="h2hResult" class="mt-4 text-center"></div>
@@ -277,7 +278,7 @@
         let db, auth, userId;
         let players = [], leagues = [], matches = [];
         let chartInstances = {};
-        const chartColors = ['#58a6ff', '#238636', '#e54848', '#a371f7', '#f25757', '#2ea043'];
+        const chartColors = ['#00b894', '#20c997', '#6c757d', '#17a2b8', '#fd7e14', '#6610f2'];
 
         async function startApp() {
             try {
@@ -386,7 +387,6 @@
                 else { s1.draws++; s1.points++; s2.draws++; s2.points++; }
             });
 
-            // Calculate Streaks
             leaguePlayers.forEach(p => {
                 const playerMatches = leagueMatches.filter(m => m.player1Name === p || m.player2Name === p).slice(-3);
                 if (playerMatches.length === 3) {
@@ -463,14 +463,16 @@
         function renderChart(leagueName, chartData) {
             const ctx = document.getElementById(`chart-${leagueName}`)?.getContext('2d');
             if(!ctx) return;
+            const textColor = '#333';
+            const gridColor = '#e9ecef';
             chartInstances[leagueName] = new Chart(ctx, {
                 type: 'line', data: chartData,
                 options: {
                     scales: { 
-                        y: { beginAtZero: true, ticks: { color: '#c9d1d9' }, grid: { color: '#30363d'} }, 
-                        x: { ticks: { color: '#c9d1d9' }, grid: { color: '#30363d'} } 
+                        y: { beginAtZero: true, ticks: { color: textColor }, grid: { color: gridColor} }, 
+                        x: { ticks: { color: textColor }, grid: { color: gridColor} } 
                     },
-                    plugins: { legend: { labels: { color: '#c9d1d9' } } }
+                    plugins: { legend: { labels: { color: textColor } } }
                 }
             });
         }
@@ -514,7 +516,7 @@
             const motw = matches.find(m => m.isMOTW);
             if(motw) {
                 motwContainer.innerHTML = `
-                    <h2 class="text-2xl mb-2 text-center text-yellow-400">★ Match of the Week ★</h2>
+                    <h2 class="text-2xl mb-2 text-center">★ Match of the Week ★</h2>
                     <div class="text-center">
                         <p class="text-lg">${motw.league}</p>
                         <p class="text-3xl font-bold my-2">
@@ -640,7 +642,7 @@
             
             playerProfileContent.innerHTML = `
                 <div class="text-left">
-                    <div class="flex justify-between items-center"><h2 class="text-3xl mb-4">${playerName}</h2><button class="cancel-button bg-gray-700 hover:bg-gray-600 p-2 rounded-lg">Close</button></div>
+                    <div class="flex justify-between items-center"><h2 class="text-3xl mb-4">${playerName}</h2><button class="cancel-button bg-gray-700 hover:bg-gray-600 p-2 rounded-lg text-white">Close</button></div>
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <p><strong>Win Rate:</strong> ${winRate}%</p><p><strong>Played:</strong> ${played}</p>
                         <p><strong>Record (W-D-L):</strong> ${wins}-${draws}-${losses}</p><p><strong>Goals per Game:</strong> ${gpg}</p>
