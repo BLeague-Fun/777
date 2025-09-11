@@ -89,13 +89,13 @@
         .rank-gold { background-color: rgba(255, 215, 0, 0.15); }
         .rank-silver { background-color: rgba(192, 192, 192, 0.15); }
         .rank-bronze { background-color: rgba(205, 127, 50, 0.15); }
-        .player-name-link {
+        a.player-name-link {
             text-decoration: none;
             color: #00b894;
             font-weight: 500;
             transition: color 0.2s;
         }
-        .player-name-link:hover {
+        a.player-name-link:hover {
             text-decoration: underline;
             color: #00a884;
         }
@@ -157,6 +157,15 @@
             animation: crossFade 0.4s ease-in-out;
         }
 
+        .club-logo-sm {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            object-fit: cover;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -173,7 +182,7 @@
                 max-width: 100%;
             }
             h1 {
-                font-size: 1.875rem; /* text-3xl */
+                font-size: 1.875rem;
             }
             #adminLink, #statsLink {
                 position: static;
@@ -249,7 +258,7 @@
         const userIdDisplay = document.getElementById('userIdDisplay');
         
         let db, auth, userId;
-        let players = [], leagues = [], matches = [], clubAssignments = {};
+        let players = [], leagues = [], matches = [], clubAssignments = {}, clubs = [];
         let chartInstances = {};
         const chartColors = ['#00b894', '#20c997', '#6c757d', '#17a2b8', '#fd7e14', '#6610f2'];
 
@@ -290,6 +299,10 @@
                 renderMatchList();
                 renderAllLeagueData();
                 renderMOTW();
+            });
+             onSnapshot(collection(db, 'clubs'), snapshot => {
+                clubs = snapshot.docs.map(doc => doc.data());
+                renderAllLeagueData();
             });
             onSnapshot(collection(db, 'clubAssignments'), snapshot => {
                 clubAssignments = {};
@@ -353,7 +366,7 @@
         function calculateLeagueStats(leagueMatches, leaguePlayers) {
             const stats = {};
             leaguePlayers.forEach(p => {
-                stats[p] = { player: p, played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0, gd: 0, points: 0, streak: '' };
+                stats[p] = { player: p, played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0, gd: 0, points: 0 };
             });
 
             leagueMatches.forEach(m => {
@@ -368,21 +381,6 @@
                 else if (m.player2Goals > m.player1Goals) { s2.wins++; s2.points += 3; s1.losses++; }
                 else { s1.draws++; s1.points++; s2.draws++; s2.points++; }
             });
-
-            leaguePlayers.forEach(p => {
-                const playerMatches = leagueMatches.filter(m => m.player1Name === p || m.player2Name === p).slice(-3);
-                if (playerMatches.length === 3) {
-                    const results = playerMatches.map(m => {
-                        const isP1 = m.player1Name === p;
-                        const pGoals = isP1 ? m.player1Goals : m.player2Goals;
-                        const oGoals = isP1 ? m.player2Goals : m.player1Goals;
-                        return pGoals > oGoals ? 'W' : pGoals < oGoals ? 'L' : 'D';
-                    });
-                    if (results.every(r => r === 'W')) stats[p].streak = '🔥';
-                    if (results.every(r => r === 'L')) stats[p].streak = '❄️';
-                }
-            });
-
             return Object.values(stats).sort((a, b) => b.points - a.points || b.gd - a.gd || b.gf - a.gf);
         }
 
@@ -399,17 +397,23 @@
                 <h2 class="text-2xl mb-4"><span class="icon">🏆</span>${leagueName} Standings</h2>
                 <div class="table-container">
                     <table class="w-full"><thead><tr>
-                        <th>Rank</th><th>Player</th><th>Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
+                        <th>Rank</th><th>Player</th><th>Club Icon</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
                     </tr></thead><tbody>
-                    ${standings.map((p, i) => `
+                    ${standings.map((p, i) => {
+                        const clubName = clubAssignments[leagueName]?.[p.player] || 'N/A';
+                        const club = clubs.find(c => c.name === clubName);
+                        const clubLogo = club?.logoUrl || 'https://placehold.co/24x24/e9ecef/495057?text=?';
+
+                        return `
                         <tr class="${getRankClass(i)}">
                             <td>${i + 1}</td>
-                            <td><a href="profile.html?player=${encodeURIComponent(p.player)}" class="player-name-link">${p.player}</a> <span class="streak">${p.streak}</span></td>
-                            <td>${clubAssignments[leagueName]?.[p.player] || 'N/A'}</td>
+                            <td><a href="profile.html?player=${encodeURIComponent(p.player)}" class="player-name-link">${p.player}</a></td>
+                            <td><img src="${clubLogo}" alt="${clubName}" class="club-logo-sm" title="${clubName}"></td>
                             <td>${p.played}</td><td>${p.wins}</td>
                             <td>${p.draws}</td><td>${p.losses}</td><td>${p.gf}</td>
                             <td>${p.ga}</td><td>${p.gd}</td><td class="font-bold">${p.points}</td>
-                        </tr>`).join('')}
+                        </tr>`
+                    }).join('')}
                     </tbody></table>
                 </div>
             </div>`;
@@ -603,9 +607,6 @@
         document.body.addEventListener('click', (e) => {
             if (e.target.matches('.cancel-button')) {
                 e.target.closest('.modal').style.display = 'none';
-            }
-            if (e.target === playerProfileModal) {
-                 playerProfileModal.style.display = 'none';
             }
         });
         
