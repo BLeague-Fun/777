@@ -10,48 +10,59 @@
         
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0d1117;
-            background-image: url('https://www.transparenttextures.com/patterns/dark-matter.png');
-            color: #c9d1d9;
+            background-color: #f8f9fa;
+            color: #333;
         }
         .container {
             max-width: 90%;
             margin: 2rem auto;
             padding: 2rem;
-            background-color: rgba(22, 27, 34, 0.85);
+            background-color: rgba(255, 255, 255, 0.85);
             border-radius: 1rem;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(0, 0, 0, 0.1);
         }
         h1 {
-            color: #58a6ff;
+            color: #00b894;
             text-align: center;
             font-weight: 700;
         }
         .stat-card {
-            background-color: rgba(13, 17, 23, 0.9);
+            background-color: rgba(255, 255, 255, 0.9);
             padding: 2rem;
             border-radius: 0.75rem;
-            border: 1px solid #30363d;
+            border: 1px solid #e9ecef;
             text-align: center;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.08);
         }
         .stat-label {
             font-size: 1rem;
-            color: #8b949e;
+            color: #6c757d;
         }
         .stat-value {
             font-size: 2.5rem;
             font-weight: 800;
-            color: #58a6ff;
+            color: #00b894;
+        }
+        a {
+            color: #00b894;
+            transition: color 0.2s;
+        }
+        a:hover {
+            color: #00a884;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1 class="text-4xl font-extrabold">Overall Statistics</h1>
-        <p class="text-center mt-2"><a href="index.html" class="text-blue-400 hover:underline">← Back to Main Page</a></p>
+        <p class="text-center mt-2"><a href="index.html" class="hover:underline">← Back to Main Page</a></p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
             <div class="stat-card">
@@ -130,10 +141,11 @@
             totalMatchesEl.textContent = totalMatches;
             totalGoalsEl.textContent = totalGoals;
             avgGoalsEl.textContent = avgGoals;
-            topRivalryEl.innerHTML = `${topRivalry} <span class="text-lg text-gray-400 block">${maxGames} games</span>`;
+            topRivalryEl.innerHTML = `${topRivalry} <span class="text-lg text-gray-500 block">${maxGames} games</span>`;
         }
 
         document.addEventListener('DOMContentLoaded', startApp);
     </script>
 </body>
 </html>
+
