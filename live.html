@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Games - FC 2025 League Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #333; }
+        .container { max-width: 90%; margin: 2rem auto; padding: 2rem; background-color: rgba(255, 255, 255, 0.85); border-radius: 1rem; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1); }
+        h1, h2 { color: #00b894; text-align: center; font-weight: 700; }
+        .league-section { background-color: rgba(255, 255, 255, 0.9); padding: 1.5rem; border-radius: 0.75rem; margin-top: 1.5rem; border: 1px solid #e9ecef; }
+        .league-section h2 { text-align: left; }
+        .match-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #dee2e6; transition: all 0.3s ease; }
+        .match-item:last-child { border-bottom: none; }
+        .match-item span { font-size: 1.125rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-4xl font-extrabold">Live & Upcoming Games</h1>
+        <p class="text-center mt-2"><a href="index.html" class="text-green-500 hover:underline">← Back to Main Page</a></p>
+
+        <div id="pendingGamesContainer" class="mt-8">
+            <!-- Pending games will be populated here -->
+        </div>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, onSnapshot, collection, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBvXdFou9yUlERH-iaICi6JjNChw1rC2O0",
+          authDomain: "fun-league-6edd6.firebaseapp.com",
+          projectId: "fun-league-6edd6",
+          storageBucket: "fun-league-6edd6.appspot.com",
+          messagingSenderId: "132854098604",
+          appId: "1:132854098604:web:0c0e829ac99624dac38d09",
+          measurementId: "G-QJCY28B9HM"
+        };
+        
+        const pendingGamesContainer = document.getElementById('pendingGamesContainer');
+        
+        async function startApp() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                await signInAnonymously(auth);
+                const db = getFirestore(app);
+                
+                const q = query(collection(db, "matches"), where("status", "==", "pending"));
+
+                onSnapshot(q, (snapshot) => {
+                    const pendingMatches = snapshot.docs.map(doc => doc.data());
+                    renderPendingGames(pendingMatches);
+                });
+
+            } catch (error) {
+                console.error("Error loading live games:", error);
+                pendingGamesContainer.innerHTML = `<p class="text-center text-red-500">Could not load live games. Please check the console.</p>`;
+            }
+        }
+
+        function renderPendingGames(matches) {
+            if (matches.length === 0) {
+                pendingGamesContainer.innerHTML = '<p class="text-center text-gray-500 text-lg mt-8">No upcoming games scheduled.</p>';
+                return;
+            }
+
+            const matchesByLeague = matches.reduce((acc, match) => {
+                (acc[match.league] = acc[match.league] || []).push(match);
+                return acc;
+            }, {});
+
+            pendingGamesContainer.innerHTML = Object.keys(matchesByLeague).sort().map(leagueName => `
+                <div class="league-section">
+                    <h2 class="text-2xl mb-4">${leagueName}</h2>
+                    <div>
+                        ${matchesByLeague[leagueName].sort((a,b) => a.timestamp - b.timestamp).map(m => `
+                            <div class="match-item">
+                                <span class="font-bold">${m.player1Name}</span>
+                                <span class="text-gray-500">vs</span>
+                                <span class="font-bold">${m.player2Name}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        document.addEventListener('DOMContentLoaded', startApp);
+    </script>
+</body>
+</html>
