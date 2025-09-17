@@ -31,7 +31,8 @@
             .container { padding: 1rem; }
             h1 { font-size: 1.875rem; }
             .match-card {
-                grid-template-columns: 1fr;
+                display: flex;
+                flex-direction: column;
                 gap: 0.5rem;
                 padding: 1rem;
             }
@@ -41,8 +42,9 @@
                 gap: 1rem;
                 width: 100%;
                 text-align: left;
+                align-items: center;
             }
-            .player-info.away {
+             .player-info.away {
                 grid-template-columns: 1fr 40px;
                 text-align: right;
             }
@@ -81,8 +83,9 @@
         };
         
         const pendingGamesContainer = document.getElementById('pendingGamesContainer');
-        let allMatches = [], clubs = [], clubAssignments = {};
         
+        let allMatches = [], clubs = [], clubAssignments = {};
+
         async function startApp() {
             try {
                 const app = initializeApp(firebaseConfig);
@@ -111,6 +114,11 @@
         }
 
         function renderPendingGames() {
+            if (!allMatches.length || !clubs.length || !Object.keys(clubAssignments).length) {
+                pendingGamesContainer.innerHTML = '<p class="text-center text-gray-500 text-lg mt-8">Loading game data...</p>';
+                return;
+            }
+
             const pendingMatches = allMatches.filter(m => m.status === 'pending');
             const completedMatches = allMatches.filter(m => m.status === 'completed');
 
@@ -153,12 +161,12 @@
                             return `
                                 <div class="match-card">
                                     <div class="player-info">
-                                        <img src="${p1Logo}" alt="${p1ClubName}" class="club-logo">
+                                        <img src="${p1Logo}" alt="${p1ClubName || 'N/A'}" class="club-logo">
                                         <span class="player-name">${m.player1Name}</span>
                                     </div>
                                     <div class="vs">vs</div>
                                     <div class="player-info away">
-                                         <img src="${p2Logo}" alt="${p2ClubName}" class="club-logo">
+                                         <img src="${p2Logo}" alt="${p2ClubName || 'N/A'}" class="club-logo">
                                         <span class="player-name">${m.player2Name}</span>
                                     </div>
                                     ${lastResultHTML}
