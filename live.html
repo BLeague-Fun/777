@@ -114,7 +114,7 @@
         }
 
         function renderPendingGames() {
-            if (!allMatches.length || !clubs.length || !Object.keys(clubAssignments).length) {
+            if (!allMatches.length || !clubs.length || Object.keys(clubAssignments).length === 0) {
                 pendingGamesContainer.innerHTML = '<p class="text-center text-gray-500 text-lg mt-8">Loading game data...</p>';
                 return;
             }
