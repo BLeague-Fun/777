@@ -21,7 +21,7 @@
             border-bottom: 1px solid #e9ecef;
         }
         .match-card:last-child { border-bottom: none; }
-        .player-info { display: flex; flex-direction: column; align-items: center; }
+        .player-info { display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .player-name { font-weight: 700; font-size: 1.25rem; margin-top: 0.5rem; }
         .club-logo { width: 60px; height: 60px; object-fit: contain; }
         .vs { font-size: 2rem; font-weight: 800; color: #00b894; }
@@ -31,23 +31,26 @@
             .container { padding: 1rem; }
             h1 { font-size: 1.875rem; }
             .match-card {
-                display: flex;
-                flex-direction: column;
+                grid-template-columns: 1fr;
                 gap: 0.5rem;
                 padding: 1rem;
             }
             .player-info {
-                flex-direction: row;
-                text-align: left;
-                width: 100%;
+                display: grid;
+                grid-template-columns: 40px 1fr;
                 gap: 1rem;
+                width: 100%;
+                text-align: left;
             }
-             .player-info.away {
-                flex-direction: row-reverse;
+            .player-info.away {
+                grid-template-columns: 1fr 40px;
                 text-align: right;
             }
+             .player-info.away .player-name {
+                order: -1;
+            }
             .club-logo { width: 40px; height: 40px; }
-            .vs { font-size: 1.25rem; margin: 0.25rem 0; }
+            .vs { font-size: 1.25rem; margin: 0.5rem 0; }
             .last-match { margin-top: 0.5rem; }
         }
     </style>
@@ -78,6 +81,7 @@
         };
         
         const pendingGamesContainer = document.getElementById('pendingGamesContainer');
+        let allMatches = [], clubs = [], clubAssignments = {};
         
         async function startApp() {
             try {
@@ -87,18 +91,17 @@
                 const db = getFirestore(app);
                 
                 onSnapshot(collection(db, "matches"), (snapshot) => {
-                    const allMatches = snapshot.docs.map(doc => doc.data());
-                    onSnapshot(collection(db, 'clubs'), clubSnapshot => {
-                        const clubs = clubSnapshot.docs.map(doc => doc.data());
-                         onSnapshot(collection(db, 'clubAssignments'), assignmentSnapshot => {
-                            const clubAssignments = {};
-                            assignmentSnapshot.forEach(doc => { clubAssignments[doc.id] = doc.data(); });
-                            
-                            const pendingMatches = allMatches.filter(m => m.status === 'pending');
-                            const completedMatches = allMatches.filter(m => m.status === 'completed');
-                            renderPendingGames(pendingMatches, completedMatches, clubs, clubAssignments);
-                        });
-                    });
+                    allMatches = snapshot.docs.map(doc => doc.data());
+                    renderPendingGames();
+                });
+                onSnapshot(collection(db, 'clubs'), clubSnapshot => {
+                    clubs = clubSnapshot.docs.map(doc => doc.data());
+                    renderPendingGames();
+                });
+                onSnapshot(collection(db, 'clubAssignments'), assignmentSnapshot => {
+                    clubAssignments = {};
+                    assignmentSnapshot.forEach(doc => { clubAssignments[doc.id] = doc.data(); });
+                    renderPendingGames();
                 });
 
             } catch (error) {
@@ -107,7 +110,10 @@
             }
         }
 
-        function renderPendingGames(pendingMatches, completedMatches, clubs, clubAssignments) {
+        function renderPendingGames() {
+            const pendingMatches = allMatches.filter(m => m.status === 'pending');
+            const completedMatches = allMatches.filter(m => m.status === 'completed');
+
             if (pendingMatches.length === 0) {
                 pendingGamesContainer.innerHTML = '<p class="text-center text-gray-500 text-lg mt-8">No upcoming games scheduled.</p>';
                 return;
