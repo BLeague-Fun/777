@@ -21,9 +21,9 @@
             border-bottom: 1px solid #e9ecef;
         }
         .match-card:last-child { border-bottom: none; }
-        .player-info { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .player-name { font-weight: 700; font-size: 1.25rem; margin-top: 0.5rem; }
-        .club-logo { width: 60px; height: 60px; object-fit: contain; }
+        .player-info { display: flex; flex-direction: column; align-items: center; }
+        .player-name { font-weight: 700; font-size: 1.25rem; }
+        .player-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-bottom: 0.5rem; }
         .vs { font-size: 2rem; font-weight: 800; color: #00b894; }
         .last-match { font-size: 0.875rem; color: #6c757d; margin-top: 1rem; grid-column: 1 / -1; }
 
@@ -31,28 +31,17 @@
             .container { padding: 1rem; }
             h1 { font-size: 1.875rem; }
             .match-card {
-                display: flex;
-                flex-direction: column;
-                gap: 0.5rem;
+                grid-template-columns: 1fr;
+                gap: 1rem;
                 padding: 1rem;
             }
             .player-info {
-                display: grid;
-                grid-template-columns: 40px 1fr;
-                gap: 1rem;
-                width: 100%;
+                flex-direction: row;
                 text-align: left;
-                align-items: center;
+                width: 100%;
             }
-             .player-info.away {
-                grid-template-columns: 1fr 40px;
-                text-align: right;
-            }
-             .player-info.away .player-name {
-                order: -1;
-            }
-            .club-logo { width: 40px; height: 40px; }
-            .vs { font-size: 1.25rem; margin: 0.5rem 0; }
+            .player-avatar { margin-bottom: 0; margin-right: 1rem; }
+            .vs { font-size: 1.5rem; margin: 0.5rem 0; }
             .last-match { margin-top: 0.5rem; }
         }
     </style>
@@ -84,8 +73,6 @@
         
         const pendingGamesContainer = document.getElementById('pendingGamesContainer');
         
-        let allMatches = [], clubs = [], clubAssignments = {};
-
         async function startApp() {
             try {
                 const app = initializeApp(firebaseConfig);
@@ -94,17 +81,14 @@
                 const db = getFirestore(app);
                 
                 onSnapshot(collection(db, "matches"), (snapshot) => {
-                    allMatches = snapshot.docs.map(doc => doc.data());
-                    renderPendingGames();
-                });
-                onSnapshot(collection(db, 'clubs'), clubSnapshot => {
-                    clubs = clubSnapshot.docs.map(doc => doc.data());
-                    renderPendingGames();
-                });
-                onSnapshot(collection(db, 'clubAssignments'), assignmentSnapshot => {
-                    clubAssignments = {};
-                    assignmentSnapshot.forEach(doc => { clubAssignments[doc.id] = doc.data(); });
-                    renderPendingGames();
+                    const allMatches = snapshot.docs.map(doc => doc.data());
+                    onSnapshot(collection(db, 'players'), playerSnapshot => {
+                        const players = playerSnapshot.docs.map(doc => doc.data());
+                        
+                        const pendingMatches = allMatches.filter(m => m.status === 'pending');
+                        const completedMatches = allMatches.filter(m => m.status === 'completed');
+                        renderPendingGames(pendingMatches, completedMatches, players);
+                    });
                 });
 
             } catch (error) {
@@ -113,15 +97,7 @@
             }
         }
 
-        function renderPendingGames() {
-            if (!allMatches.length || !clubs.length || Object.keys(clubAssignments).length === 0) {
-                pendingGamesContainer.innerHTML = '<p class="text-center text-gray-500 text-lg mt-8">Loading game data...</p>';
-                return;
-            }
-
-            const pendingMatches = allMatches.filter(m => m.status === 'pending');
-            const completedMatches = allMatches.filter(m => m.status === 'completed');
-
+        function renderPendingGames(pendingMatches, completedMatches, players) {
             if (pendingMatches.length === 0) {
                 pendingGamesContainer.innerHTML = '<p class="text-center text-gray-500 text-lg mt-8">No upcoming games scheduled.</p>';
                 return;
@@ -140,13 +116,11 @@
                     <h2 class="text-2xl mb-4">${leagueName}</h2>
                     <div>
                         ${leagueMatches.map(m => {
-                            const p1ClubName = clubAssignments[leagueName]?.[m.player1Name] || null;
-                            const p2ClubName = clubAssignments[leagueName]?.[m.player2Name] || null;
-                            const p1Club = clubs.find(c => c.name === p1ClubName);
-                            const p2Club = clubs.find(c => c.name === p2ClubName);
+                            const p1Data = players.find(p => p.name === m.player1Name);
+                            const p2Data = players.find(p => p.name === m.player2Name);
                             
-                            const p1Logo = p1Club?.logoUrl || 'https://placehold.co/60x60/e9ecef/495057?text=?';
-                            const p2Logo = p2Club?.logoUrl || 'https://placehold.co/60x60/e9ecef/495057?text=?';
+                            const p1Avatar = p1Data?.avatarUrl || 'https://placehold.co/60x60/e9ecef/495057?text=?';
+                            const p2Avatar = p2Data?.avatarUrl || 'https://placehold.co/60x60/e9ecef/495057?text=?';
 
                             const lastMatch = completedMatches.filter(cm => 
                                 (cm.player1Name === m.player1Name && cm.player2Name === m.player2Name) ||
@@ -161,12 +135,12 @@
                             return `
                                 <div class="match-card">
                                     <div class="player-info">
-                                        <img src="${p1Logo}" alt="${p1ClubName || 'N/A'}" class="club-logo">
+                                        <img src="${p1Avatar}" alt="${m.player1Name}" class="player-avatar">
                                         <span class="player-name">${m.player1Name}</span>
                                     </div>
                                     <div class="vs">vs</div>
-                                    <div class="player-info away">
-                                         <img src="${p2Logo}" alt="${p2ClubName || 'N/A'}" class="club-logo">
+                                    <div class="player-info">
+                                         <img src="${p2Avatar}" alt="${m.player2Name}" class="player-avatar">
                                         <span class="player-name">${m.player2Name}</span>
                                     </div>
                                     ${lastResultHTML}
