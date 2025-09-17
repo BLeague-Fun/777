@@ -12,9 +12,20 @@
         h1, h2 { color: #00b894; text-align: center; font-weight: 700; }
         .league-section { background-color: rgba(255, 255, 255, 0.9); padding: 1.5rem; border-radius: 0.75rem; margin-top: 1.5rem; border: 1px solid #e9ecef; }
         .league-section h2 { text-align: left; }
-        .match-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #dee2e6; transition: all 0.3s ease; }
-        .match-item:last-child { border-bottom: none; }
-        .match-item span { font-size: 1.125rem; }
+        .match-card {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            text-align: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .match-card:last-child { border-bottom: none; }
+        .player-info { display: flex; flex-direction: column; align-items: center; }
+        .player-name { font-weight: 700; font-size: 1.25rem; }
+        .club-logo { width: 60px; height: 60px; object-fit: contain; margin-bottom: 0.5rem; }
+        .vs { font-size: 2rem; font-weight: 800; color: #00b894; }
+        .last-match { font-size: 0.875rem; color: #6c757d; margin-top: 1rem; grid-column: 1 / -1; }
     </style>
 </head>
 <body>
@@ -30,7 +41,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, onSnapshot, collection, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyBvXdFou9yUlERH-iaICi6JjNChw1rC2O0",
@@ -51,11 +62,19 @@
                 await signInAnonymously(auth);
                 const db = getFirestore(app);
                 
-                const q = query(collection(db, "matches"), where("status", "==", "pending"));
-
-                onSnapshot(q, (snapshot) => {
-                    const pendingMatches = snapshot.docs.map(doc => doc.data());
-                    renderPendingGames(pendingMatches);
+                onSnapshot(collection(db, "matches"), (snapshot) => {
+                    const allMatches = snapshot.docs.map(doc => doc.data());
+                    onSnapshot(collection(db, 'clubs'), clubSnapshot => {
+                        const clubs = clubSnapshot.docs.map(doc => doc.data());
+                         onSnapshot(collection(db, 'clubAssignments'), assignmentSnapshot => {
+                            const clubAssignments = {};
+                            assignmentSnapshot.forEach(doc => { clubAssignments[doc.id] = doc.data(); });
+                            
+                            const pendingMatches = allMatches.filter(m => m.status === 'pending');
+                            const completedMatches = allMatches.filter(m => m.status === 'completed');
+                            renderPendingGames(pendingMatches, completedMatches, clubs, clubAssignments);
+                        });
+                    });
                 });
 
             } catch (error) {
@@ -64,31 +83,58 @@
             }
         }
 
-        function renderPendingGames(matches) {
-            if (matches.length === 0) {
+        function renderPendingGames(pendingMatches, completedMatches, clubs, clubAssignments) {
+            if (pendingMatches.length === 0) {
                 pendingGamesContainer.innerHTML = '<p class="text-center text-gray-500 text-lg mt-8">No upcoming games scheduled.</p>';
                 return;
             }
 
-            const matchesByLeague = matches.reduce((acc, match) => {
+            const matchesByLeague = pendingMatches.reduce((acc, match) => {
                 (acc[match.league] = acc[match.league] || []).push(match);
                 return acc;
             }, {});
 
-            pendingGamesContainer.innerHTML = Object.keys(matchesByLeague).sort().map(leagueName => `
+            pendingGamesContainer.innerHTML = Object.keys(matchesByLeague).sort().map(leagueName => {
+                const leagueMatches = matchesByLeague[leagueName].sort((a,b) => a.timestamp - b.timestamp);
+                
+                return `
                 <div class="league-section">
                     <h2 class="text-2xl mb-4">${leagueName}</h2>
                     <div>
-                        ${matchesByLeague[leagueName].sort((a,b) => a.timestamp - b.timestamp).map(m => `
-                            <div class="match-item">
-                                <span class="font-bold">${m.player1Name}</span>
-                                <span class="text-gray-500">vs</span>
-                                <span class="font-bold">${m.player2Name}</span>
-                            </div>
-                        `).join('')}
+                        ${leagueMatches.map(m => {
+                            const p1ClubName = clubAssignments[leagueName]?.[m.player1Name] || null;
+                            const p2ClubName = clubAssignments[leagueName]?.[m.player2Name] || null;
+                            const p1Club = clubs.find(c => c.name === p1ClubName);
+                            const p2Club = clubs.find(c => c.name === p2ClubName);
+
+                            const lastMatch = completedMatches.filter(cm => 
+                                (cm.player1Name === m.player1Name && cm.player2Name === m.player2Name) ||
+                                (cm.player1Name === m.player2Name && cm.player2Name === m.player1Name)
+                            ).sort((a,b) => b.timestamp - a.timestamp)[0];
+                            
+                            let lastResultHTML = '<p class="last-match">First encounter</p>';
+                            if (lastMatch) {
+                                lastResultHTML = `<p class="last-match">Last Result: ${lastMatch.player1Name} ${lastMatch.player1Goals} - ${lastMatch.player2Goals} ${lastMatch.player2Name}</p>`;
+                            }
+
+                            return `
+                                <div class="match-card">
+                                    <div class="player-info">
+                                        <img src="${p1Club?.logoUrl || 'https://placehold.co/60x60/e9ecef/495057?text=?'}" alt="${p1ClubName}" class="club-logo">
+                                        <span class="player-name">${m.player1Name}</span>
+                                    </div>
+                                    <div class="vs">vs</div>
+                                    <div class="player-info">
+                                         <img src="${p2Club?.logoUrl || 'https://placehold.co/60x60/e9ecef/495057?text=?'}" alt="${p2ClubName}" class="club-logo">
+                                        <span class="player-name">${m.player2Name}</span>
+                                    </div>
+                                    ${lastResultHTML}
+                                </div>
+                            `
+                        }).join('')}
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         document.addEventListener('DOMContentLoaded', startApp);
