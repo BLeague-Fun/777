@@ -177,6 +177,11 @@
                     <div id="clubList" class="mt-4 max-h-60 overflow-y-auto"></div>
                 </div>
             </div>
+             <div class="text-center mt-8">
+                <a href="danger.html" class="text-red-500 hover:underline">Danger Zone (Delete Leagues)</a>
+                <span class="mx-2 text-gray-400">|</span>
+                <a href="extra.html" class="text-purple-500 hover:underline">Extra Features</a>
+            </div>
         </div>
     </div>
     
@@ -205,6 +210,7 @@
         
         const adminUID = "ujMJ9cUFxxguzNmezN6iF2TQNN52";
 
+        // DOM elements
         const loginSection = document.getElementById('loginSection');
         const loginForm = document.getElementById('loginForm');
         const loginError = document.getElementById('loginError');
@@ -401,7 +407,7 @@
             }
             const leagueData = leagues.find(l => l.name === selectedLeague);
             let leaguePlayers = leagueData?.roster || [];
-            if (!leaguePlayers.length) {
+             if (leaguePlayers.length === 0) {
                  leaguePlayers = [...new Set(matches.filter(m => m.league === selectedLeague).flatMap(m => [m.player1Name, m.player2Name]))];
             }
 
@@ -441,16 +447,38 @@
             }
             const batch = writeBatch(db);
             const roster = league.roster;
-            for (let i = 0; i < roster.length; i++) {
-                for (let j = i + 1; j < roster.length; j++) {
-                    const match1 = { league: leagueName, player1Name: roster[i], player2Name: roster[j], status: 'pending', timestamp: Date.now() };
-                    batch.set(doc(collection(db, 'matches')), match1);
-                    if (legs === 2) {
-                        const match2 = { league: leagueName, player1Name: roster[j], player2Name: roster[i], status: 'pending', timestamp: Date.now() + 1 };
-                        batch.set(doc(collection(db, 'matches')), match2);
+            let fixtures = [];
+            
+            // Round Robin Algorithm
+            const schedulePlayers = [...roster];
+            if (schedulePlayers.length % 2 !== 0) {
+                schedulePlayers.push('BYE');
+            }
+            const numRounds = schedulePlayers.length - 1;
+            
+            for(let r = 0; r < numRounds; r++) {
+                for(let i = 0; i < schedulePlayers.length / 2; i++) {
+                    const player1 = schedulePlayers[i];
+                    const player2 = schedulePlayers[schedulePlayers.length - 1 - i];
+                    if (player1 !== 'BYE' && player2 !== 'BYE') {
+                        fixtures.push({ league: leagueName, player1Name: player1, player2Name: player2 });
                     }
                 }
+                // Rotate array for next round
+                schedulePlayers.splice(1, 0, schedulePlayers.pop());
             }
+
+            if (legs === 2) {
+                const homeFixtures = [...fixtures];
+                const awayFixtures = homeFixtures.map(f => ({...f, player1Name: f.player2Name, player2Name: f.player1Name}));
+                fixtures = [...homeFixtures, ...awayFixtures];
+            }
+            
+            fixtures.forEach((f, i) => {
+                const newMatch = { ...f, status: 'pending', timestamp: Date.now() + i };
+                batch.set(doc(collection(db, 'matches')), newMatch);
+            });
+            
             await batch.commit();
             
             const leagueRef = doc(db, 'leagues', leagueId);
@@ -793,11 +821,8 @@
             e.preventDefault();
             const clubName = document.getElementById('clubNameInput').value.trim();
             const clubLogo = document.getElementById('clubLogoInput').value.trim();
-            const primaryColor = document.getElementById('clubPrimaryColor').value.trim();
-            const secondaryColor = document.getElementById('clubSecondaryColor').value.trim();
-            const textColor = document.getElementById('clubTextColor').value.trim();
             if(clubName && !clubs.find(c => c.name === clubName)) {
-                await addDoc(collection(db, 'clubs'), { name: clubName, logoUrl: clubLogo, primaryColor, secondaryColor, textColor });
+                await addDoc(collection(db, 'clubs'), { name: clubName, logoUrl: clubLogo });
                 addClubForm.reset();
             } else {
                  alert('A club with this name already exists.');
