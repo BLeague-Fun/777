@@ -7,7 +7,21 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #1a1a1a; color: #fff; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f8f9fa; 
+            color: #333; 
+        }
+        .container { 
+            max-width: 90%; 
+            margin: 2rem auto; 
+            padding: 2rem; 
+            background-color: rgba(255, 255, 255, 0.85); 
+            border-radius: 1rem; 
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+        }
+        h1 { color: #00b894; text-align: center; font-weight: 900; }
+        h2 { font-weight: 700; color: #fff; }
         .kurd-bg { background: linear-gradient(135deg, #e42222, #24903c); }
         .arab-bg { background: linear-gradient(135deg, #2a2a2a, #007a3d); }
         .stat-card { background-color: rgba(0,0,0,0.2); border-radius: 0.75rem; padding: 1.5rem; text-align: center; }
@@ -18,12 +32,12 @@
         .match-history-item { background-color: rgba(0,0,0,0.1); border-radius: 0.5rem; padding: 0.75rem 1rem; }
     </style>
 </head>
-<body class="bg-gray-900">
+<body>
 
-    <div class="container mx-auto p-4 md:p-8 max-w-5xl">
-        <h1 class="text-4xl md:text-6xl font-black text-center text-white uppercase tracking-wider">The Rivalry</h1>
+    <div class="container">
+        <h1 class="text-4xl md:text-6xl uppercase tracking-wider">The Rivalry</h1>
         <p class="text-center mt-2 text-2xl font-bold"><span class="text-red-500">KURD</span> vs <span class="text-green-500">ARAB</span></p>
-        <p class="text-center mt-4"><a href="index.html" class="text-gray-400 hover:underline">← Back to Main Page</a></p>
+        <p class="text-center mt-4"><a href="index.html" class="text-green-500 hover:underline">← Back to Main Page</a></p>
 
         <!-- Main Comparison -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 mt-8 items-center">
@@ -45,7 +59,7 @@
                 </div>
             </div>
 
-            <div class="text-center text-5xl font-black text-gray-500">VS</div>
+            <div class="text-center text-5xl font-black text-gray-400">VS</div>
 
             <div class="arab-bg p-6 rounded-lg">
                 <h2 class="text-3xl font-bold text-center">ARAB</h2>
@@ -68,7 +82,7 @@
 
         <!-- Star Players -->
         <div class="mt-8">
-            <h2 class="text-3xl font-bold text-center">Star Players</h2>
+            <h2 class="text-3xl font-bold text-center text-gray-800">Star Players</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 mt-4">
                 <div id="kurdStar" class="player-card kurd-bg"></div>
                 <div id="arabStar" class="player-card arab-bg"></div>
@@ -76,9 +90,9 @@
         </div>
 
         <!-- Head to Head History -->
-        <div class="mt-8">
+        <div class="mt-8 stat-card bg-white">
             <h2 class="text-3xl font-bold text-center">Rivalry Match History</h2>
-            <div id="rivalryHistory" class="mt-4 space-y-2 max-h-96 overflow-y-auto p-4 bg-black bg-opacity-20 rounded-lg">
+            <div id="rivalryHistory" class="mt-4 space-y-2 max-h-96 overflow-y-auto p-4 bg-gray-50 rounded-lg">
             </div>
         </div>
     </div>
@@ -102,7 +116,7 @@
             try {
                 const app = initializeApp(firebaseConfig);
                 const auth = getAuth(app);
-                await signInAnonymously(auth);
+                await signInAnonymously(auth); // Must sign in to read data
                 const db = getFirestore(app);
 
                 const playersSnapshot = await getDocs(collection(db, 'players'));
@@ -117,6 +131,7 @@
 
             } catch (error) {
                 console.error("Error loading fun stats:", error);
+                document.querySelector('.container').innerHTML = `<h1 class="text-red-500">Error loading data. Check console.</h1>`;
             }
         }
 
@@ -157,7 +172,7 @@
 
             // Star Players
             const getStarPlayer = (playerSet) => {
-                 let star = { name: 'N/A', wins: 0, avatarUrl: 'https://placehold.co/80x80/e9ecef/495057?text=?' };
+                 let star = { name: 'N/A', wins: -1, avatarUrl: 'https://placehold.co/80x80/e9ecef/495057?text=?' };
                 playerSet.forEach(playerName => {
                     const playerData = allPlayers.find(p => p.name === playerName);
                     const playerMatches = allMatches.filter(m => m.player1Name === playerName || m.player2Name === playerName);
@@ -183,11 +198,11 @@
 
             // History
             document.getElementById('rivalryHistory').innerHTML = rivalryMatches.sort((a,b) => b.timestamp - a.timestamp).map(m => `
-                <div class="match-history-item text-center">
-                    <p class="text-sm text-gray-400">${m.league}</p>
+                <div class="match-history-item text-center bg-gray-100">
+                    <p class="text-sm text-gray-500">${m.league}</p>
                     <p>${m.player1Name} <b class="text-xl">${m.player1Goals} - ${m.player2Goals}</b> ${m.player2Name}</p>
                 </div>
-            `).join('');
+            `).join('') || '<p class="text-center text-gray-500">No rivalry matches have been played yet.</p>';
 
         }
 
