@@ -22,6 +22,9 @@
         .leaderboard-name { flex-grow: 1; }
         .leaderboard-value { font-weight: bold; }
         .trophy-icon, .title-icon { font-size: 1.25rem; margin-right: 0.5rem; }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.5rem 1rem; border-bottom: 1px solid #e9ecef; }
     </style>
 </head>
 <body>
@@ -39,7 +42,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
             <div class="leaderboard-card lg:col-span-3">
                 <h2 class="text-2xl mb-4">Most Goals in a Single Season</h2>
-                <div id="mostGoalsSeasonLeaderboard"></div>
+                <div id="mostGoalsSeasonLeaderboard" class="max-h-96 overflow-y-auto"></div>
             </div>
             <div class="leaderboard-card">
                 <h2 class="text-2xl mb-4">Most Career Wins</h2>
@@ -181,11 +184,11 @@
                 highestScoringMatch: { value: 0, players: '', score: '' },
                 biggestBlowout: { value: 0, winner: '', score: '' }
             };
-            
+
             let allSeasonPerformances = [];
-            leagues.filter(l => l.status === 'ended').forEach(league => {
+            leagues.forEach(league => {
                 const leagueMatches = matches.filter(m => m.league === league.name);
-                const leaguePlayers = league.roster || [];
+                const leaguePlayers = league.roster || [...new Set(leagueMatches.flatMap(m => [m.player1Name, m.player2Name]))];
                 const stats = {};
                 leaguePlayers.forEach(p => { stats[p] = { gf: 0 }; });
                 leagueMatches.forEach(m => {
@@ -199,13 +202,7 @@
             });
 
             const top3GoalSeasons = allSeasonPerformances.sort((a,b) => b.goals - a.goals).slice(0,3);
-            document.getElementById('mostGoalsSeasonLeaderboard').innerHTML = `
-                 <div class="table-container">
-                    <table class="w-full"><thead><tr><th>Rank</th><th>Player</th><th>Goals</th><th>League</th></tr></thead><tbody>
-                        ${top3GoalSeasons.map((p, i) => `<tr><td>${i+1}</td><td>${p.player}</td><td>${p.goals}</td><td>${p.league}</td></tr>`).join('')}
-                    </tbody></table>
-                </div>
-            `;
+            document.getElementById('mostGoalsSeasonLeaderboard').innerHTML = top3GoalSeasons.map((p, i) => createLeaderboardItem(i+1, p.player, `${p.goals} (${p.league})`)).join('')
 
 
             players.forEach(player => {
