@@ -45,4 +45,153 @@
                 </div>
             </div>
 
-            <div class="text-center text-5xl font-black
+            <div class="text-center text-5xl font-black text-gray-500">VS</div>
+
+            <div class="arab-bg p-6 rounded-lg">
+                <h2 class="text-3xl font-bold text-center">ARAB</h2>
+                 <div class="grid grid-cols-3 gap-4 mt-4">
+                    <div class="stat-card">
+                        <p id="arabWins" class="stat-value">0</p>
+                        <p class="stat-label">Wins</p>
+                    </div>
+                    <div class="stat-card">
+                        <p id="arabGoals" class="stat-value">0</p>
+                        <p class="stat-label">Goals</p>
+                    </div>
+                    <div class="stat-card">
+                        <p id="arabHonors" class="stat-value">0</p>
+                        <p class="stat-label">Trophies</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Star Players -->
+        <div class="mt-8">
+            <h2 class="text-3xl font-bold text-center">Star Players</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 mt-4">
+                <div id="kurdStar" class="player-card kurd-bg"></div>
+                <div id="arabStar" class="player-card arab-bg"></div>
+            </div>
+        </div>
+
+        <!-- Head to Head History -->
+        <div class="mt-8">
+            <h2 class="text-3xl font-bold text-center">Rivalry Match History</h2>
+            <div id="rivalryHistory" class="mt-4 space-y-2 max-h-96 overflow-y-auto p-4 bg-black bg-opacity-20 rounded-lg">
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBvXdFou9yUlERH-iaICi6JjNChw1rC2O0",
+          authDomain: "fun-league-6edd6.firebaseapp.com",
+          projectId: "fun-league-6edd6",
+          storageBucket: "fun-league-6edd6.appspot.com",
+          messagingSenderId: "132854098604",
+          appId: "1:132854098604:web:0c0e829ac99624dac38d09",
+          measurementId: "G-QJCY28B9HM"
+        };
+        
+        async function startApp() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                await signInAnonymously(auth);
+                const db = getFirestore(app);
+
+                const playersSnapshot = await getDocs(collection(db, 'players'));
+                const matchesSnapshot = await getDocs(query(collection(db, 'matches'), where('status', '==', 'completed')));
+                const honorsSnapshot = await getDocs(collection(db, 'honors'));
+
+                const allPlayers = playersSnapshot.docs.map(doc => doc.data());
+                const allMatches = matchesSnapshot.docs.map(doc => doc.data());
+                const allHonors = honorsSnapshot.docs.map(doc => doc.data());
+
+                renderRivalryStats(allPlayers, allMatches, allHonors);
+
+            } catch (error) {
+                console.error("Error loading fun stats:", error);
+            }
+        }
+
+        function renderRivalryStats(allPlayers, allMatches, allHonors) {
+            const kurdPlayers = new Set(allPlayers.filter(p => p.nationality === 'Kurd').map(p => p.name));
+            const arabPlayers = new Set(allPlayers.filter(p => p.nationality === 'Arab').map(p => p.name));
+
+            const rivalryMatches = allMatches.filter(m => 
+                (kurdPlayers.has(m.player1Name) && arabPlayers.has(m.player2Name)) ||
+                (arabPlayers.has(m.player1Name) && kurdPlayers.has(m.player2Name))
+            );
+
+            let kurdWins = 0, arabWins = 0, kurdGoals = 0, arabGoals = 0;
+
+            rivalryMatches.forEach(m => {
+                if (kurdPlayers.has(m.player1Name)) { // Kurd is P1
+                    kurdGoals += m.player1Goals;
+                    arabGoals += m.player2Goals;
+                    if (m.player1Goals > m.player2Goals) kurdWins++;
+                    else if (m.player2Goals > m.player1Goals) arabWins++;
+                } else { // Arab is P1
+                    arabGoals += m.player1Goals;
+                    kurdGoals += m.player2Goals;
+                    if (m.player1Goals > m.player2Goals) arabWins++;
+                    else if (m.player2Goals > m.player1Goals) kurdWins++;
+                }
+            });
+
+            document.getElementById('kurdWins').textContent = kurdWins;
+            document.getElementById('arabWins').textContent = arabWins;
+            document.getElementById('kurdGoals').textContent = kurdGoals;
+            document.getElementById('arabGoals').textContent = arabGoals;
+            
+            const kurdHonors = allHonors.filter(h => kurdPlayers.has(h.playerName)).length;
+            const arabHonors = allHonors.filter(h => arabPlayers.has(h.playerName)).length;
+            document.getElementById('kurdHonors').textContent = kurdHonors;
+            document.getElementById('arabHonors').textContent = arabHonors;
+
+            // Star Players
+            const getStarPlayer = (playerSet) => {
+                 let star = { name: 'N/A', wins: 0, avatarUrl: 'https://placehold.co/80x80/e9ecef/495057?text=?' };
+                playerSet.forEach(playerName => {
+                    const playerData = allPlayers.find(p => p.name === playerName);
+                    const playerMatches = allMatches.filter(m => m.player1Name === playerName || m.player2Name === playerName);
+                    const wins = playerMatches.filter(m => (m.player1Name === playerName && m.player1Goals > m.player2Goals) || (m.player2Name === playerName && m.player2Goals > m.player1Goals)).length;
+                    if(wins > star.wins) {
+                        star = { name: playerName, wins, avatarUrl: playerData.avatarUrl || star.avatarUrl };
+                    }
+                });
+                return star;
+            }
+
+            const kurdStar = getStarPlayer(kurdPlayers);
+            const arabStar = getStarPlayer(arabPlayers);
+
+            document.getElementById('kurdStar').innerHTML = `
+                <img src="${kurdStar.avatarUrl}" alt="${kurdStar.name}" class="player-avatar">
+                <p class="text-xl font-bold">${kurdStar.name}</p>
+                <p>${kurdStar.wins} Career Wins</p>`;
+            document.getElementById('arabStar').innerHTML = `
+                <img src="${arabStar.avatarUrl}" alt="${arabStar.name}" class="player-avatar">
+                <p class="text-xl font-bold">${arabStar.name}</p>
+                <p>${arabStar.wins} Career Wins</p>`;
+
+            // History
+            document.getElementById('rivalryHistory').innerHTML = rivalryMatches.sort((a,b) => b.timestamp - a.timestamp).map(m => `
+                <div class="match-history-item text-center">
+                    <p class="text-sm text-gray-400">${m.league}</p>
+                    <p>${m.player1Name} <b class="text-xl">${m.player1Goals} - ${m.player2Goals}</b> ${m.player2Name}</p>
+                </div>
+            `).join('');
+
+        }
+
+        document.addEventListener('DOMContentLoaded', startApp);
+    </script>
+</body>
+</html>
