@@ -162,6 +162,7 @@
                     <form id="addPlayerForm" class="flex flex-col gap-4">
                         <input type="text" id="playerNameInput" placeholder="New Player Name" required>
                         <input type="email" id="playerEmailInput" placeholder="Player Email">
+                        <input type="text" id="playerNationalityInput" placeholder="Player Nationality">
                         <input type="url" id="playerAvatarInput" placeholder="Player Avatar URL">
                         <button type="submit">Add Player</button>
                     </form>
@@ -208,9 +209,8 @@
           measurementId: "G-QJCY28B9HM"
         };
         
-        const adminUID = "ujMJ9cUFxxguzNmezN6iF2TQNN52";
+        const adminUID = "PASTE_YOUR_ADMIN_USER_ID_HERE";
 
-        // DOM elements
         const loginSection = document.getElementById('loginSection');
         const loginForm = document.getElementById('loginForm');
         const loginError = document.getElementById('loginError');
@@ -311,7 +311,7 @@
                         <img src="${p.avatarUrl || 'https://placehold.co/40x40/e9ecef/495057?text=?'}" alt="${p.name}" class="player-avatar">
                         <div>
                             <p class="font-bold">${p.name}</p>
-                            <p class="text-sm text-gray-500">${p.email || 'No email'}</p>
+                            <p class="text-sm text-gray-500">${p.email || 'No email'} | ${p.nationality || 'N/A'}</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
@@ -464,7 +464,6 @@
                         fixtures.push({ league: leagueName, player1Name: player1, player2Name: player2 });
                     }
                 }
-                // Rotate array for next round
                 schedulePlayers.splice(1, 0, schedulePlayers.pop());
             }
 
@@ -599,6 +598,7 @@
                     <input type="hidden" id="editPlayerId" value="${playerId}">
                     <div><label class="block mb-1">Name</label><input type="text" id="editPlayerName" value="${player.name}" required class="w-full"></div>
                     <div><label class="block mb-1">Email</label><input type="email" id="editPlayerEmail" value="${player.email || ''}" class="w-full"></div>
+                    <div><label class="block mb-1">Nationality</label><input type="text" id="editPlayerNationality" value="${player.nationality || ''}" class="w-full"></div>
                     <div><label class="block mb-1">Avatar URL</label><input type="url" id="editPlayerAvatar" value="${player.avatarUrl || ''}" class="w-full"></div>
                     <div class="flex justify-end gap-4 mt-4">
                         <button type="button" class="cancel-button bg-gray-600 hover:bg-gray-500 text-white">Cancel</button>
@@ -615,10 +615,11 @@
             const playerId = document.getElementById('editPlayerId').value;
             const name = document.getElementById('editPlayerName').value.trim();
             const email = document.getElementById('editPlayerEmail').value.trim();
+            const nationality = document.getElementById('editPlayerNationality').value.trim();
             const avatarUrl = document.getElementById('editPlayerAvatar').value.trim();
 
             if (name) {
-                await updateDoc(doc(db, 'players', playerId), { name, email, avatarUrl });
+                await updateDoc(doc(db, 'players', playerId), { name, email, nationality, avatarUrl });
                 editPlayerModal.style.display = 'none';
             }
         });
@@ -798,9 +799,10 @@
             e.preventDefault(); 
             const pName = document.getElementById('playerNameInput').value.trim();
             const pEmail = document.getElementById('playerEmailInput').value.trim();
+            const pNationality = document.getElementById('playerNationalityInput').value.trim();
             const pAvatar = document.getElementById('playerAvatarInput').value.trim();
             if (pName && !players.find(p => p.name === pName)) { 
-                await addDoc(collection(db, 'players'), { name: pName, email: pEmail, avatarUrl: pAvatar }); 
+                await addDoc(collection(db, 'players'), { name: pName, email: pEmail, nationality: pNationality, avatarUrl: pAvatar }); 
                 addPlayerForm.reset(); 
             } else {
                 alert('A player with this name already exists.');
