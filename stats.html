@@ -10,18 +10,18 @@
         
         body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #333; }
         .container { max-width: 90%; margin: 2rem auto; padding: 2rem; background-color: rgba(255, 255, 255, 0.85); border-radius: 1rem; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1); }
-        h1, h2, h3 { color: #00b894; text-align: center; font-weight: 700; }
+        h1, h2 { color: #00b894; text-align: center; font-weight: 700; }
         h2 { text-align: left; }
-        .stat-card, .leaderboard-card { background-color: rgba(255, 255, 255, 0.9); padding: 1.5rem; border-radius: 0.75rem; border: 1px solid #e9ecef; margin-top: 1.5rem; }
+        .stat-card, .leaderboard-card { background-color: rgba(255, 255, 255, 0.9); padding: 1.5rem; border-radius: 0.75rem; border: 1px solid #e9ecef; }
         .stat-label { font-size: 1rem; color: #6c757d; }
-        .stat-value { font-size: 2.25rem; font-weight: 800; color: #00b894; }
-        .record-holder { font-size: 1.25rem; font-weight: 500; }
+        .stat-value { font-size: 2.25rem; font-weight: 800; color: #00b894; line-height: 1.2; }
+        .record-holder { font-size: 1rem; font-weight: 500; }
         .leaderboard-item { display: flex; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #e9ecef; }
         .leaderboard-item:last-child { border-bottom: none; }
         .leaderboard-rank { font-weight: bold; width: 2rem; }
         .leaderboard-name { flex-grow: 1; }
         .leaderboard-value { font-weight: bold; }
-        .trophy-icon { font-size: 1.25rem; margin-right: 0.5rem; }
+        .trophy-icon, .title-icon { font-size: 1.25rem; margin-right: 0.5rem; }
     </style>
 </head>
 <body>
@@ -29,14 +29,30 @@
         <h1 class="text-4xl font-extrabold">Hall of Fame</h1>
         <p class="text-center mt-2"><a href="index.html" class="text-green-500 hover:underline">← Back to Main Page</a></p>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-            <div class="stat-card lg:col-span-3">
-                <h2 class="text-2xl mb-4">All-Time Records</h2>
-                <div id="allTimeRecords" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Records will be populated here -->
-                </div>
+        <div class="stat-card mt-8">
+            <h2 class="text-2xl mb-4">All-Time Records</h2>
+            <div id="allTimeRecords" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Records will be populated here -->
             </div>
+        </div>
 
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+            <div class="leaderboard-card lg:col-span-3">
+                <h2 class="text-2xl mb-4">Most Goals in a Single Season</h2>
+                <div id="mostGoalsSeasonLeaderboard"></div>
+            </div>
+            <div class="leaderboard-card">
+                <h2 class="text-2xl mb-4">Most Career Wins</h2>
+                <div id="careerWinsLeaderboard" class="max-h-96 overflow-y-auto"></div>
+            </div>
+            <div class="leaderboard-card">
+                <h2 class="text-2xl mb-4">Most Career Goals</h2>
+                <div id="careerGoalsLeaderboard" class="max-h-96 overflow-y-auto"></div>
+            </div>
+            <div class="leaderboard-card">
+                <h2 class="text-2xl mb-4">Best Goal Difference</h2>
+                <div id="careerGdLeaderboard" class="max-h-96 overflow-y-auto"></div>
+            </div>
             <div class="leaderboard-card">
                 <h2 class="text-2xl mb-4">League Champions 🥇</h2>
                 <div id="leagueChampionsList" class="max-h-96 overflow-y-auto"></div>
@@ -49,11 +65,16 @@
                 <h2 class="text-2xl mb-4">Most Best Defender Awards 🛡️</h2>
                 <div id="bestDefenderLeaderboard" class="max-h-96 overflow-y-auto"></div>
             </div>
+             <div class="leaderboard-card lg:col-span-3">
+                <h2 class="text-2xl mb-4">Unofficial Titles</h2>
+                <div id="unofficialTitlesList"></div>
+            </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -69,6 +90,8 @@
         async function startApp() {
             try {
                 const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                await signInAnonymously(auth);
                 const db = getFirestore(app);
 
                 const playersSnapshot = await getDocs(collection(db, 'players'));
@@ -89,48 +112,78 @@
         }
 
         function renderHallOfFame(players, leagues, matches, honors) {
-            // Render Leaderboards
             renderLeaderboard('leagueChampionsList', honors, 'Gold Medal', '🥇');
             renderLeaderboard('topScorerLeaderboard', honors, 'Top Scorer', '⚽');
             renderLeaderboard('bestDefenderLeaderboard', honors, 'Best Defender', '🛡️');
 
-            // Render All-Time Records
+            const careerStats = calculateCareerStats(players, matches);
+            renderCareerLeaderboards(careerStats);
             calculateAndRenderRecords(players, leagues, matches);
+            renderUnofficialTitles(players, matches, honors);
+        }
+        
+        function calculateCareerStats(players, matches) {
+            const stats = {};
+            players.forEach(p => {
+                stats[p.name] = { player: p.name, wins: 0, gf: 0, ga: 0 };
+            });
+            matches.forEach(m => {
+                const p1 = stats[m.player1Name];
+                const p2 = stats[m.player2Name];
+                if (!p1 || !p2) return;
+                
+                p1.gf += m.player1Goals; p1.ga += m.player2Goals;
+                p2.gf += m.player2Goals; p2.ga += m.player1Goals;
+                
+                if(m.player1Goals > m.player2Goals) p1.wins++;
+                else if (m.player2Goals > m.player1Goals) p2.wins++;
+            });
+            return Object.values(stats);
+        }
+
+        function renderCareerLeaderboards(careerStats) {
+            const winsLeaderboard = [...careerStats].sort((a,b) => b.wins - a.wins).slice(0,5);
+            const goalsLeaderboard = [...careerStats].sort((a,b) => b.gf - a.gf).slice(0,5);
+            const gdLeaderboard = [...careerStats].sort((a,b) => (b.gf - b.ga) - (a.gf - a.ga)).slice(0,5);
+
+            document.getElementById('careerWinsLeaderboard').innerHTML = winsLeaderboard.map((p, i) => createLeaderboardItem(i + 1, p.player, p.wins)).join('');
+            document.getElementById('careerGoalsLeaderboard').innerHTML = goalsLeaderboard.map((p, i) => createLeaderboardItem(i + 1, p.player, p.gf)).join('');
+            document.getElementById('careerGdLeaderboard').innerHTML = gdLeaderboard.map((p, i) => createLeaderboardItem(i + 1, p.player, p.gf - p.ga)).join('');
         }
 
         function renderLeaderboard(elementId, honors, awardType, icon) {
             const element = document.getElementById(elementId);
             const leaderboard = {};
-
             honors.filter(h => h.award === awardType).forEach(h => {
                 leaderboard[h.playerName] = (leaderboard[h.playerName] || 0) + 1;
             });
             
             const sortedPlayers = Object.entries(leaderboard).sort((a, b) => b[1] - a[1]);
-
             if (sortedPlayers.length > 0) {
-                element.innerHTML = sortedPlayers.map(([name, count], index) => `
-                    <div class="leaderboard-item">
-                        <div class="leaderboard-rank">${index + 1}</div>
-                        <div class="leaderboard-name">${name}</div>
-                        <div class="leaderboard-value">${count} ${icon}</div>
-                    </div>
-                `).join('');
+                element.innerHTML = sortedPlayers.map(([name, count], index) => createLeaderboardItem(index + 1, name, count, icon)).join('');
             } else {
                 element.innerHTML = '<p class="text-gray-500">No awards yet.</p>';
             }
         }
+
+        function createLeaderboardItem(rank, name, value, icon = '') {
+            return `
+                <div class="leaderboard-item">
+                    <div class="leaderboard-rank">${rank}</div>
+                    <div class="leaderboard-name">${name}</div>
+                    <div class="leaderboard-value">${value} <span class="trophy-icon">${icon}</span></div>
+                </div>`;
+        }
         
         function calculateAndRenderRecords(players, leagues, matches) {
             const records = {
-                mostGoalsSeason: { value: 0, player: 'N/A', league: '' },
                 longestUndefeatedStreak: { value: 0, player: 'N/A' },
-                biggestMargin: { value: 0, league: '', winner: '' }
+                highestScoringMatch: { value: 0, players: '', score: '' },
+                biggestBlowout: { value: 0, winner: '', score: '' }
             };
-
-            const completedLeagues = leagues.filter(l => l.status === 'ended');
-
-            completedLeagues.forEach(league => {
+            
+            let allSeasonPerformances = [];
+            leagues.filter(l => l.status === 'ended').forEach(league => {
                 const leagueMatches = matches.filter(m => m.league === league.name);
                 const leaguePlayers = league.roster || [];
                 const stats = {};
@@ -140,11 +193,20 @@
                     if(stats[m.player2Name]) stats[m.player2Name].gf += m.player2Goals;
                 });
                 
-                const topScorer = Object.entries(stats).sort((a, b) => b[1].gf - a[1].gf)[0];
-                if (topScorer && topScorer[1].gf > records.mostGoalsSeason.value) {
-                    records.mostGoalsSeason = { value: topScorer[1].gf, player: topScorer[0], league: league.name };
-                }
+                Object.entries(stats).forEach(([playerName, playerStats]) => {
+                    allSeasonPerformances.push({ player: playerName, league: league.name, goals: playerStats.gf });
+                });
             });
+
+            const top3GoalSeasons = allSeasonPerformances.sort((a,b) => b.goals - a.goals).slice(0,3);
+            document.getElementById('mostGoalsSeasonLeaderboard').innerHTML = `
+                 <div class="table-container">
+                    <table class="w-full"><thead><tr><th>Rank</th><th>Player</th><th>Goals</th><th>League</th></tr></thead><tbody>
+                        ${top3GoalSeasons.map((p, i) => `<tr><td>${i+1}</td><td>${p.player}</td><td>${p.goals}</td><td>${p.league}</td></tr>`).join('')}
+                    </tbody></table>
+                </div>
+            `;
+
 
             players.forEach(player => {
                 const playerMatches = matches.filter(m => m.player1Name === player.name || m.player2Name === player.name).sort((a,b) => a.timestamp - b.timestamp);
@@ -154,31 +216,78 @@
                     const isP1 = m.player1Name === player.name;
                     const pGoals = isP1 ? m.player1Goals : m.player2Goals;
                     const oGoals = isP1 ? m.player2Goals : m.player1Goals;
-                    if (pGoals >= oGoals) {
-                        currentStreak++;
-                    } else {
-                        if (currentStreak > maxStreak) maxStreak = currentStreak;
-                        currentStreak = 0;
-                    }
+                    if (pGoals >= oGoals) { currentStreak++; } 
+                    else { maxStreak = Math.max(maxStreak, currentStreak); currentStreak = 0; }
                 });
-                if (currentStreak > maxStreak) maxStreak = currentStreak;
+                maxStreak = Math.max(maxStreak, currentStreak);
                 if (maxStreak > records.longestUndefeatedStreak.value) {
                     records.longestUndefeatedStreak = { value: maxStreak, player: player.name };
                 }
             });
 
+            matches.forEach(match => {
+                const totalGoals = match.player1Goals + match.player2Goals;
+                const goalDiff = Math.abs(match.player1Goals - match.player2Goals);
+
+                if (totalGoals > records.highestScoringMatch.value) {
+                    records.highestScoringMatch = { value: totalGoals, players: `${match.player1Name} vs ${match.player2Name}`, score: `${match.player1Goals} - ${match.player2Goals}`};
+                }
+                if (goalDiff > records.biggestBlowout.value) {
+                    const winner = match.player1Goals > match.player2Goals ? match.player1Name : match.player2Name;
+                    records.biggestBlowout = { value: goalDiff, winner, score: `${match.player1Goals} - ${match.player2Goals}` };
+                }
+            });
+
             document.getElementById('allTimeRecords').innerHTML = `
-                <div class="stat-card">
-                    <p class="stat-label">Most Goals in a Season</p>
-                    <p class="stat-value">${records.mostGoalsSeason.value}</p>
-                    <p class="record-holder">${records.mostGoalsSeason.player} (${records.mostGoalsSeason.league})</p>
-                </div>
                 <div class="stat-card">
                     <p class="stat-label">Longest Undefeated Streak</p>
                     <p class="stat-value">${records.longestUndefeatedStreak.value}</p>
                     <p class="record-holder">${records.longestUndefeatedStreak.player}</p>
                 </div>
+                 <div class="stat-card">
+                    <p class="stat-label">Highest Scoring Match</p>
+                    <p class="stat-value">${records.highestScoringMatch.value}</p>
+                    <p class="record-holder">${records.highestScoringMatch.score} (${records.highestScoringMatch.players})</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Biggest Blowout</p>
+                    <p class="stat-value">${records.biggestBlowout.value}</p>
+                    <p class="record-holder">${records.biggestBlowout.winner} (${records.biggestBlowout.score})</p>
+                </div>
             `;
+        }
+
+        function renderUnofficialTitles(allPlayers, allMatches, allHonors) {
+            let titlesHTML = '';
+            const playerStats = allPlayers.map(p => {
+                const pMatches = allMatches.filter(m => m.player1Name === p.name || m.player2Name === p.name);
+                let gf = 0, ga = 0, draws = 0, cleanSheets = 0;
+                pMatches.forEach(m => {
+                    const isP1 = m.player1Name === p.name;
+                    gf += isP1 ? m.player1Goals : m.player2Goals;
+                    ga += isP1 ? m.player2Goals : m.player1Goals;
+                    if(m.player1Goals === m.player2Goals) draws++;
+                    if((isP1 && m.player2Goals === 0) || (!isP1 && m.player1Goals === 0)) cleanSheets++;
+                });
+                return { name: p.name, played: pMatches.length, gf, ga, draws, cleanSheets, avgTotalGoals: pMatches.length > 0 ? (gf + ga) / pMatches.length : 0, drawPct: pMatches.length > 0 ? (draws/pMatches.length) : 0 };
+            });
+
+            const glassCannon = [...playerStats].filter(p => p.played >= 5).sort((a,b) => b.avgTotalGoals - a.avgTotalGoals)[0];
+            if(glassCannon) {
+                titlesHTML += `<div class="leaderboard-item"><span class="title-icon">🗡️</span><div class="leaderboard-name"><strong>The Glass Cannon:</strong> ${glassCannon.name}</div><div class="leaderboard-value">${glassCannon.avgTotalGoals.toFixed(2)} total goals/game</div></div>`;
+            }
+
+            const fortress = [...playerStats].filter(p => p.played >= 5).sort((a,b) => b.cleanSheets - a.cleanSheets)[0];
+            if(fortress && fortress.cleanSheets > 0) {
+                 titlesHTML += `<div class="leaderboard-item"><span class="title-icon">🏰</span><div class="leaderboard-name"><strong>The Fortress:</strong> ${fortress.name}</div><div class="leaderboard-value">${fortress.cleanSheets} clean sheets</div></div>`;
+            }
+            
+            const pacifist = [...playerStats].filter(p => p.played >= 5).sort((a,b) => b.drawPct - a.drawPct)[0];
+            if(pacifist && pacifist.draws > 0) {
+                 titlesHTML += `<div class="leaderboard-item"><span class="title-icon">🕊️</span><div class="leaderboard-name"><strong>The Pacifist:</strong> ${pacifist.name}</div><div class="leaderboard-value">${(pacifist.drawPct * 100).toFixed(1)}% draw rate</div></div>`;
+            }
+            
+            document.getElementById('unofficialTitlesList').innerHTML = titlesHTML || '<p>No unofficial titles awarded yet.</p>';
         }
 
         document.addEventListener('DOMContentLoaded', startApp);
