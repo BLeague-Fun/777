@@ -62,7 +62,7 @@
 
         <!-- Star Players -->
         <div class="mt-8">
-            <h2 class="text-3xl font-bold text-center text-gray-800">Star Players</h2>
+            <h2 class="text-3xl font-bold text-center text-gray-800">Star Players of the Rivalry</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 mt-4">
                 <div class="kurd-card p-4 rounded-lg"><div id="kurdStars" class="space-y-4"></div></div>
                 <div class="arab-card p-4 rounded-lg"><div id="arabStars" class="space-y-4"></div></div>
@@ -150,30 +150,34 @@
             document.getElementById('kurdHonors').textContent = kurdHonors;
             document.getElementById('arabHonors').textContent = arabHonors;
 
-            // Star Players
-            const getStarPlayers = (playerSet) => {
-                return Array.from(playerSet).map(playerName => {
+            // Star Players based on rivalry wins
+            const getStarPlayers = (playerSet, isKurd) => {
+                 return Array.from(playerSet).map(playerName => {
                     const playerData = allPlayers.find(p => p.name === playerName);
-                    const playerMatches = allMatches.filter(m => m.player1Name === playerName || m.player2Name === playerName);
-                    const wins = playerMatches.filter(m => (m.player1Name === playerName && m.player1Goals > m.player2Goals) || (m.player2Name === playerName && m.player2Goals > m.player1Goals)).length;
+                    const wins = rivalryMatches.filter(m => 
+                        (kurdPlayers.has(m.player1Name) && m.player1Name === playerName && m.player1Goals > m.player2Goals) ||
+                        (kurdPlayers.has(m.player2Name) && m.player2Name === playerName && m.player2Goals > m.player1Goals) ||
+                        (arabPlayers.has(m.player1Name) && m.player1Name === playerName && m.player1Goals > m.player2Goals) ||
+                        (arabPlayers.has(m.player2Name) && m.player2Name === playerName && m.player2Goals > m.player1Goals)
+                    ).length;
                     return { name: playerName, wins, avatarUrl: playerData?.avatarUrl || 'https://placehold.co/80x80/e9ecef/495057?text=?' };
                 }).sort((a,b) => b.wins - a.wins).slice(0, 3);
             }
 
-            const kurdStars = getStarPlayers(kurdPlayers);
-            const arabStars = getStarPlayers(arabPlayers);
+            const kurdStars = getStarPlayers(kurdPlayers, true);
+            const arabStars = getStarPlayers(arabPlayers, false);
 
             document.getElementById('kurdStars').innerHTML = kurdStars.map(star => `
                 <div class="player-card">
                     <img src="${star.avatarUrl}" alt="${star.name}" class="player-avatar">
                     <p class="text-xl font-bold">${star.name}</p>
-                    <p>${star.wins} Career Wins</p>
+                    <p>${star.wins} Rivalry Wins</p>
                 </div>`).join('');
             document.getElementById('arabStars').innerHTML = arabStars.map(star => `
                 <div class="player-card">
                     <img src="${star.avatarUrl}" alt="${star.name}" class="player-avatar">
                     <p class="text-xl font-bold">${star.name}</p>
-                    <p>${star.wins} Career Wins</p>
+                    <p>${star.wins} Rivalry Wins</p>
                 </div>`).join('');
 
 
