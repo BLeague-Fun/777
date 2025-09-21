@@ -80,7 +80,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyBvXdFou9yUlERH-iaICi6JjNChw1rC2O0",
@@ -150,17 +150,16 @@
             document.getElementById('kurdHonors').textContent = kurdHonors;
             document.getElementById('arabHonors').textContent = arabHonors;
 
-            // Star Players based on rivalry wins
+            // Star Players
             const getStarPlayers = (playerSet, isKurd) => {
-                 return Array.from(playerSet).map(playerName => {
+                return Array.from(playerSet).map(playerName => {
                     const playerData = allPlayers.find(p => p.name === playerName);
+                    const rivalryMatchesPlayed = rivalryMatches.filter(m => m.player1Name === playerName || m.player2Name === playerName).length;
                     const wins = rivalryMatches.filter(m => 
-                        (kurdPlayers.has(m.player1Name) && m.player1Name === playerName && m.player1Goals > m.player2Goals) ||
-                        (kurdPlayers.has(m.player2Name) && m.player2Name === playerName && m.player2Goals > m.player1Goals) ||
-                        (arabPlayers.has(m.player1Name) && m.player1Name === playerName && m.player1Goals > m.player2Goals) ||
-                        (arabPlayers.has(m.player2Name) && m.player2Name === playerName && m.player2Goals > m.player1Goals)
+                        (m.player1Name === playerName && m.player1Goals > m.player2Goals) || 
+                        (m.player2Name === playerName && m.player2Goals > m.player1Goals)
                     ).length;
-                    return { name: playerName, wins, avatarUrl: playerData?.avatarUrl || 'https://placehold.co/80x80/e9ecef/495057?text=?' };
+                    return { name: playerName, wins, rivalryMatchesPlayed, avatarUrl: playerData?.avatarUrl || 'https://placehold.co/80x80/e9ecef/495057?text=?' };
                 }).sort((a,b) => b.wins - a.wins).slice(0, 3);
             }
 
@@ -172,13 +171,15 @@
                     <img src="${star.avatarUrl}" alt="${star.name}" class="player-avatar">
                     <p class="text-xl font-bold">${star.name}</p>
                     <p>${star.wins} Rivalry Wins</p>
-                </div>`).join('');
+                    <p class="text-sm opacity-80 mt-1">${star.rivalryMatchesPlayed} Rivalry Matches</p>
+                </div>`).join('') || '<p>No Kurd players with rivalry matches.</p>';
             document.getElementById('arabStars').innerHTML = arabStars.map(star => `
                 <div class="player-card">
                     <img src="${star.avatarUrl}" alt="${star.name}" class="player-avatar">
                     <p class="text-xl font-bold">${star.name}</p>
                     <p>${star.wins} Rivalry Wins</p>
-                </div>`).join('');
+                    <p class="text-sm opacity-80 mt-1">${star.rivalryMatchesPlayed} Rivalry Matches</p>
+                </div>`).join('') || '<p>No Arab players with rivalry matches.</p>';
 
 
             // History
@@ -211,3 +212,4 @@
     </script>
 </body>
 </html>
+
