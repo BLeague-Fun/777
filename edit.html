@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Match Results - Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #333; }
+        .container { max-width: 90%; margin: 2rem auto; padding: 2rem; background-color: rgba(255, 255, 255, 0.85); border-radius: 1rem; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1); }
+        h1, h2 { color: #00b894; text-align: center; font-weight: 700; }
+        .form-section { background-color: rgba(255, 255, 255, 0.9); padding: 1.5rem; border-radius: 0.75rem; margin-top: 1.5rem; border: 1px solid #e9ecef; }
+        .form-section h2 { text-align: left; }
+        input, button, select { padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #dee2e6; background-color: #f6f8fa; color: #333; }
+        button { background-color: #00b894; color: white; font-weight: 500; cursor: pointer; }
+        button:hover { background-color: #00a884; }
+        .edit-item-btn { background-color: transparent; border: none; cursor: pointer; padding: 0.25rem; transition: color 0.2s; color: #00b894; }
+        .edit-item-btn:hover { color: #00a884; }
+        .match-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #dee2e6; }
+        .hidden { display: none; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); justify-content: center; align-items: center; overflow-y: auto; }
+        .modal-content { background-color: #fff; padding: 2rem; border-radius: 0.75rem; border: 1px solid #e9ecef; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); width: 90%; max-width: 500px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loginSection">
+            <h1 class="text-4xl font-extrabold">Admin Login Required</h1>
+            <form id="loginForm" class="mt-4 max-w-sm mx-auto bg-white p-6 rounded-lg border">
+                <div class="mb-4"><label for="email" class="block mb-2">Email</label><input type="email" id="email" required class="w-full"></div>
+                <div class="mb-6"><label for="password" class="block mb-2">Password</label><input type="password" id="password" required class="w-full"></div>
+                <button type="submit" class="w-full">Login</button>
+                <p id="loginError" class="text-red-500 text-center mt-4 hidden"></p>
+            </form>
+        </div>
+
+        <div id="adminControls" class="hidden">
+            <h1 class="text-4xl font-extrabold">Edit Match Results</h1>
+            <p class="text-center mt-2"><a href="admin.html" class="text-green-500 hover:underline">← Back to Main Admin Panel</a></p>
+
+            <div class="form-section">
+                <h2 class="text-2xl mb-4">Select League</h2>
+                <select id="leagueSelect" class="w-full">
+                    <option value="">-- Choose a league --</option>
+                </select>
+                <div id="completedMatchesList" class="mt-4 max-h-96 overflow-y-auto"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Match Modal -->
+    <div id="editMatchModal" class="modal"><div class="modal-content"></div></div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, updateDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBvXdFou9yUlERH-iaICi6JjNChw1rC2O0",
+          authDomain: "fun-league-6edd6.firebaseapp.com",
+          projectId: "fun-league-6edd6",
+          storageBucket: "fun-league-6edd6.appspot.com",
+          messagingSenderId: "132854098604",
+          appId: "1:132854098604:web:0c0e829ac99624dac38d09",
+          measurementId: "G-QJCY28B9HM"
+        };
+        
+        const adminUID = "ujMJ9cUFxxguzNmezN6iF2TQNN52";
+
+        const loginSection = document.getElementById('loginSection');
+        const loginForm = document.getElementById('loginForm');
+        const loginError = document.getElementById('loginError');
+        const adminControls = document.getElementById('adminControls');
+        const leagueSelect = document.getElementById('leagueSelect');
+        const completedMatchesList = document.getElementById('completedMatchesList');
+        const editMatchModal = document.getElementById('editMatchModal');
+
+        let db, auth;
+        let matches = [], leagues = [];
+
+        async function startApp() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                
+                onAuthStateChanged(auth, user => {
+                    if (user && user.uid === adminUID) {
+                        loginSection.classList.add('hidden');
+                        adminControls.classList.remove('hidden');
+                        setupListeners();
+                    } else {
+                        loginSection.classList.remove('hidden');
+                        adminControls.classList.add('hidden');
+                    }
+                });
+            } catch (error) {
+                console.error("Initialization error:", error);
+            }
+        }
+        
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            loginError.classList.add('hidden');
+            try { await signInWithEmailAndPassword(auth, email, password); } 
+            catch (error) {
+                console.error("Login failed:", error);
+                loginError.textContent = "Login failed. Please check your credentials.";
+                loginError.classList.remove('hidden');
+            }
+        });
+
+        function setupListeners() {
+            onSnapshot(collection(db, 'leagues'), snapshot => {
+                leagues = snapshot.docs.map(doc => doc.data());
+                renderLeagueSelect();
+            });
+            onSnapshot(collection(db, 'matches'), snapshot => {
+                matches = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderCompletedMatches();
+            });
+        }
+
+        function renderLeagueSelect() {
+            leagueSelect.innerHTML = `<option value="">-- Choose a league --</option>${leagues.map(l => `<option value="${l.name}">${l.name}</option>`).join('')}`;
+        }
+
+        leagueSelect.addEventListener('change', renderCompletedMatches);
+
+        function renderCompletedMatches() {
+            const selectedLeague = leagueSelect.value;
+            if (!selectedLeague) {
+                completedMatchesList.innerHTML = '<p class="text-gray-500">Please select a league to see its matches.</p>';
+                return;
+            }
+
+            const leagueMatches = matches.filter(m => m.league === selectedLeague && m.status === 'completed');
+
+            if (leagueMatches.length === 0) {
+                completedMatchesList.innerHTML = '<p class="text-gray-500">No completed matches in this league yet.</p>';
+                return;
+            }
+
+            completedMatchesList.innerHTML = leagueMatches.sort((a,b) => b.timestamp - a.timestamp).map(m => `
+                <div class="match-item">
+                    <span>${m.player1Name} <b>${m.player1Goals}</b> - <b>${m.player2Goals}</b> ${m.player2Name}</span>
+                    <button class="edit-item-btn" data-id="${m.id}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg></button>
+                </div>
+            `).join('');
+        }
+
+        function openEditModal(matchId) {
+            const match = matches.find(m => m.id === matchId);
+            if (!match) return;
+
+            editMatchModal.querySelector('.modal-content').innerHTML = `
+                <h2 class="text-2xl mb-4">Edit Match Score</h2>
+                <form id="editMatchForm">
+                    <input type="hidden" id="editMatchId" value="${matchId}">
+                    <div class="flex items-center justify-center gap-4">
+                        <div class="text-center">
+                            <label class="block mb-2 font-bold">${match.player1Name}</label>
+                            <input type="number" id="editPlayer1Goals" value="${match.player1Goals}" required class="w-24 text-center text-2xl">
+                        </div>
+                        <span class="text-2xl font-bold">vs</span>
+                        <div class="text-center">
+                            <label class="block mb-2 font-bold">${match.player2Name}</label>
+                            <input type="number" id="editPlayer2Goals" value="${match.player2Goals}" required class="w-24 text-center text-2xl">
+                        </div>
+                    </div>
+                    <div class="flex justify-center gap-4 mt-6">
+                        <button type="button" class="cancel-button bg-gray-600 hover:bg-gray-500 text-white">Cancel</button>
+                        <button type="submit">Save Changes</button>
+                    </div>
+                </form>
+            `;
+            editMatchModal.style.display = 'flex';
+        }
+        
+        editMatchModal.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (e.target.id !== 'editMatchForm') return;
+            const matchId = document.getElementById('editMatchId').value;
+            const player1Goals = parseInt(document.getElementById('editPlayer1Goals').value);
+            const player2Goals = parseInt(document.getElementById('editPlayer2Goals').value);
+
+            if (!isNaN(player1Goals) && !isNaN(player2Goals)) {
+                const matchRef = doc(db, 'matches', matchId);
+                await updateDoc(matchRef, { player1Goals, player2Goals });
+                editMatchModal.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-item-btn');
+            if (editBtn) {
+                openEditModal(editBtn.dataset.id);
+            }
+        });
+        
+        document.body.addEventListener('click', (e) => {
+            if (e.target.matches('.cancel-button')) {
+                 e.target.closest('.modal').style.display = 'none';
+            }
+        });
+        
+        document.addEventListener('DOMContentLoaded', startApp);
+    </script>
+</body>
+</html>
