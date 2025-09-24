@@ -27,9 +27,39 @@
         }
         h1, h2 {
             color: #00b894;
-            text-align: center;
             font-weight: 700;
         }
+        h1 { text-align: center; }
+        h2 { text-align: left; }
+
+        /* === ADD THIS NEW CSS === */
+        .nav-link {
+          background-color: #00b894;
+          color: white !important; /* Use important to override Tailwind if needed */
+          padding: 0.5rem 1rem;
+          border-radius: 0.5rem;
+          text-decoration: none;
+          font-weight: 500;
+          transition: all 0.2s ease-in-out;
+          display: inline-block;
+          border: 1px solid transparent;
+        }
+
+        .nav-link:hover {
+          background-color: #00a884;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Optional: Different color for admin button */
+        .nav-link.admin-link {
+          background-color: #e67e22;
+        }
+        .nav-link.admin-link:hover {
+          background-color: #d35400;
+        }
+
+
         .standings-section, .archive-section, .stats-section {
             background-color: rgba(255, 255, 255, 0.9);
             padding: 1.5rem;
@@ -40,7 +70,6 @@
         .standings-section h2, .archive-section h2, .stats-section h2 {
             margin-top: 0;
             color: #00b894;
-            text-align: left;
             display: flex;
             align-items: center;
         }
@@ -107,18 +136,8 @@
             border: 1px solid #00b894;
             background: linear-gradient(145deg, rgba(0, 184, 148, 0.05), rgba(0, 184, 148, 0.15));
         }
-        #motwContainer h2 { color: #00b894; }
-        #adminLink, #statsLink {
-            position: absolute;
-            top: 2.5rem;
-            background-color: #00b894;
-            color: white;
-        }
-         #adminLink:hover, #statsLink:hover {
-            background-color: #00a884;
-         }
-        #adminLink { right: 2.5rem; }
-        #statsLink { right: 10.5rem; }
+        #motwContainer h2 { color: #00b894; text-align: center;}
+        
         #h2hButton {
             background-image: linear-gradient(to right, #00a884, #00b894);
             border: none;
@@ -184,12 +203,6 @@
             h1 {
                 font-size: 1.875rem;
             }
-            #adminLink, #statsLink {
-                position: static;
-                display: block;
-                width: fit-content;
-                margin: 0.5rem auto;
-            }
             #h2hResult {
                 grid-template-columns: 1fr;
                 gap: 1.5rem;
@@ -200,19 +213,29 @@
 </head>
 <body>
 
-    <div class="container relative">
-        <a id="statsLink" href="live.html" class="p-2 rounded-lg text-white no-underline">Live (On-Going) Matches</a>
-        <a id="statsLink" href="stats.html" class="p-2 rounded-lg text-white no-underline">Overall Stats</a>
-        <a id="adminLink" href="admin.html" class="hidden p-2 rounded-lg text-white no-underline">Admin Panel</a>
-        <h1 class="text-4xl font-extrabold">Fifa Master</h1>
-        <p class="text-center text-sm mt-2"><span id="userIdDisplay">Loading...</span></p>
+    <header class="bg-white shadow-md w-full sticky top-0 z-10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap justify-between items-center">
+        
+        <div class="text-center sm:text-left">
+          <h1 class="text-3xl font-extrabold text-[#00b894]">Fifa Master</h1>
+          <p class="text-xs text-gray-500 -mt-1"><span id="userIdDisplay">Loading...</span></p>
+        </div>
 
+        <nav class="flex items-center gap-2 mt-3 sm:mt-0 w-full sm:w-auto justify-center">
+          <a href="live.html" class="nav-link">Live Matches</a>
+          <a href="stats.html" class="nav-link">Overall Stats</a>
+          <a id="adminLink" href="admin.html" class="nav-link admin-link hidden">Admin Panel</a>
+        </nav>
+
+      </div>
+    </header>
+    <div class="container">
         <div id="mainContent">
             <div id="motwContainer" class="stats-section hidden"></div>
             <div id="leagueTabsContainer" class="league-tabs-container"></div>
             <div id="leagueContentContainer"></div>
 
-             <div class="stats-section">
+            <div class="stats-section">
                 <h2 class="text-2xl mb-4"><span class="icon">⚔️</span>Head-to-Head (All Leagues)</h2>
                 <div class="flex flex-col sm:flex-row items-center gap-4">
                     <select id="h2hPlayer1Select" class="w-full rounded-md p-2"></select>
