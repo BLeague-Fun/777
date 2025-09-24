@@ -196,7 +196,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, addDoc, deleteDoc, updateDoc, setDoc, onSnapshot, collection, query, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -211,6 +211,7 @@
         
         const adminUID = "ujMJ9cUFxxguzNmezN6iF2TQNN52";
 
+        // DOM elements
         const loginSection = document.getElementById('loginSection');
         const loginForm = document.getElementById('loginForm');
         const loginError = document.getElementById('loginError');
@@ -268,7 +269,10 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             loginError.classList.add('hidden');
-            try { await signInWithEmailAndPassword(auth, email, password); } 
+            try {
+                await setPersistence(auth, browserLocalPersistence);
+                await signInWithEmailAndPassword(auth, email, password); 
+            } 
             catch (error) {
                 console.error("Login failed:", error);
                 loginError.textContent = "Login failed. Please check your credentials.";
@@ -449,7 +453,6 @@
             const roster = league.roster;
             let fixtures = [];
             
-            // Round Robin Algorithm
             const schedulePlayers = [...roster];
             if (schedulePlayers.length % 2 !== 0) {
                 schedulePlayers.push('BYE');
