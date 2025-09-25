@@ -76,8 +76,10 @@
           measurementId: "G-QJCY28B9HM"
         };
         
-        const adminUID = "ujMJ9cUFxxguzNmezN6iF2TQNN52";
-
+const adminUIDs = [
+  "ujMJ9cUFxxguzNmezN6iF2TQNN52", // Original admin
+  "eKYHaxJHdARSKJndm1FuFHAGXPq2"   // New admin
+];
         const loginSection = document.getElementById('loginSection');
         const loginForm = document.getElementById('loginForm');
         const loginError = document.getElementById('loginError');
@@ -97,16 +99,18 @@
                 auth = getAuth(app);
                 db = getFirestore(app);
                 
-                onAuthStateChanged(auth, user => {
-                    if (user && user.uid === adminUID) {
-                        loginSection.classList.add('hidden');
-                        adminControls.classList.remove('hidden');
-                        fetchAllData();
-                    } else {
-                        loginSection.classList.remove('hidden');
-                        adminControls.classList.add('hidden');
-                    }
-                });
+onAuthStateChanged(auth, user => {
+    // Corrected Check: Does the user exist AND is their ID in the admin list?
+    if (user && adminUIDs.includes(user.uid)) { // <-- FIXED LINE
+        userId = user.uid;
+        loginSection.classList.add('hidden');
+        adminControls.classList.remove('hidden');
+        setupListeners();
+    } else {
+        loginSection.classList.remove('hidden');
+        adminControls.classList.add('hidden');
+    }
+});
             } catch (error) {
                 console.error("Initialization error:", error);
             }
