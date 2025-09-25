@@ -40,7 +40,7 @@
         }
         .stat-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: 1fr 1fr;
             gap: 1rem;
             margin-top: 1rem;
             border-top: 1px solid #e9ecef;
@@ -112,11 +112,21 @@
 
             const playerStats = players.map(player => {
                 const playerMatches = matches.filter(m => m.player1Name === player.name || m.player2Name === player.name);
-                const wins = playerMatches.filter(m => (m.player1Name === player.name && m.player1Goals > m.player2Goals) || (m.player2Name === player.name && m.player2Goals > m.player1Goals)).length;
-                const goals = playerMatches.reduce((acc, m) => {
-                    return acc + (m.player1Name === player.name ? m.player1Goals : m.player2Goals);
-                }, 0);
-                return { ...player, wins, goals, played: playerMatches.length };
+                let wins = 0, losses = 0, draws = 0, goals = 0;
+
+                playerMatches.forEach(m => {
+                    const isP1 = m.player1Name === player.name;
+                    const pGoals = isP1 ? m.player1Goals : m.player2Goals;
+                    const oGoals = isP1 ? m.player2Goals : m.player1Goals;
+
+                    goals += pGoals;
+
+                    if (pGoals > oGoals) wins++;
+                    else if (oGoals > pGoals) losses++;
+                    else draws++;
+                });
+                
+                return { ...player, wins, losses, draws, goals, played: playerMatches.length };
             });
 
             playerGrid.innerHTML = playerStats.sort((a,b) => a.name.localeCompare(b.name)).map(player => `
@@ -124,13 +134,12 @@
                     <img src="${player.avatarUrl || 'https://placehold.co/100x100/e9ecef/495057?text=?'}" alt="${player.name}" class="player-avatar">
                     <h2 class="player-name">${player.name}</h2>
                     <div class="stat-grid">
-                        <div>
+                        <div class="relative group">
                             <p class="stat-value">${player.played}</p>
                             <p class="stat-label">Played</p>
-                        </div>
-                        <div>
-                            <p class="stat-value">${player.wins}</p>
-                            <p class="stat-label">Wins</p>
+                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-gray-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                ${player.wins}W - ${player.draws}D - ${player.losses}L
+                            </div>
                         </div>
                         <div>
                             <p class="stat-value">${player.goals}</p>
@@ -145,3 +154,4 @@
     </script>
 </body>
 </html>
+
