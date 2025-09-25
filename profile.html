@@ -3,101 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Player Profile - FC 2025 League Tracker</title>
+    <title>Player Profile - Fifa Leagues Master</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
-        
-        :root {
-            --primary-color: #f8f9fa;
-            --secondary-color: #00b894;
-            --text-color: #333;
-            --container-bg: rgba(255, 255, 255, 0.85);
-            --card-bg: rgba(255, 255, 255, 0.9);
-            --border-color: #e9ecef;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--primary-color);
-            color: var(--text-color);
-            transition: background-color 0.5s, color 0.5s;
-        }
-        .container {
-            max-width: 90%;
-            margin: 2rem auto;
-            padding: 2rem;
-            background-color: var(--container-bg);
-            border-radius: 1rem;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(0, 0, 0, 0.1);
-        }
-        h1, h2 {
-            color: var(--secondary-color);
-            font-weight: 700;
-            transition: color 0.5s;
-        }
-        a {
-            color: var(--secondary-color);
-            transition: color 0.2s;
-        }
-        a:hover {
-            filter: brightness(1.2);
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #333; }
+        .container { max-width: 90%; margin: 2rem auto; padding: 2rem; background-color: rgba(255, 255, 255, 0.85); border-radius: 1rem; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1); }
+        h1, h2 { color: #00b894; font-weight: 700; }
         .stat-card, .trophy-card, .title-card {
-             background-color: var(--card-bg);
+             background-color: #fff;
             padding: 1.5rem;
             border-radius: 0.75rem;
-            border: 1px solid var(--border-color);
+            border: 1px solid #e9ecef;
             margin-top: 1.5rem;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         }
-        .trophy, .special-title {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid var(--border-color);
+         .stat-card:hover, .trophy-card:hover, .title-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.08);
         }
-        .trophy:last-child, .special-title:last-child {
-            border-bottom: none;
-        }
-        .trophy-icon, .title-icon {
-            font-size: 2rem;
-            margin-right: 1rem;
-        }
+        .trophy, .special-title { display: flex; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #e9ecef; }
+        .trophy:last-child, .special-title:last-child { border-bottom: none; }
+        .trophy-icon, .title-icon { font-size: 2rem; margin-right: 1rem; }
         .player-header {
+            background-color: #fff;
+            border-radius: 0.75rem;
+            padding: 2rem;
+            border: 1px solid #e9ecef;
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
+            background-image: url('https://www.transparenttextures.com/patterns/light-sketch.png');
         }
         .player-avatar {
             width: 128px;
             height: 128px;
             border-radius: 50%;
             object-fit: cover;
-            border: 4px solid var(--secondary-color);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 4px solid #00b894;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             margin-bottom: 1rem;
         }
-        .match-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .favorite-club-card {
-             display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        .favorite-club-logo {
-            max-height: 80px;
-            margin-bottom: 0.5rem;
-        }
+        .match-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #dee2e6; }
+        .favorite-club-card { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .favorite-club-logo { max-height: 80px; margin-bottom: 0.5rem; }
+        .loading-placeholder { filter: blur(4px); transition: filter 0.3s; }
+        .loaded { filter: blur(0); }
     </style>
 </head>
 <body>
@@ -107,33 +59,28 @@
              <img id="playerAvatar" src="https://placehold.co/128x128/e9ecef/495057?text=?" alt="Player Avatar" class="player-avatar">
             <h1 id="playerName" class="text-4xl font-extrabold text-center">Loading...</h1>
             <p id="playerEmail" class="opacity-70"></p>
+            <div id="favoriteClub" class="mt-4"></div>
         </div>
-        <p class="text-center mt-4"><a href="index.html" class="hover:underline">← Back to Main Page</a></p>
+        <p class="text-center mt-4"><a href="index.html" class="text-green-500 hover:underline">← Back to Main Page</a></p>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
             <div class="stat-card md:col-span-2">
-                <h2 class="text-2xl mb-4">Career Statistics</h2>
-                <div id="careerStats" class="grid grid-cols-2 gap-4"></div>
+                <h2 class="text-2xl mb-4 text-center">Career Statistics</h2>
+                <div id="careerStats" class="grid grid-cols-2 gap-4 loading-placeholder"><p class="col-span-2 text-center">Calculating stats...</p></div>
             </div>
-            <div class="flex flex-col gap-6">
-                <div class="stat-card favorite-club-card">
-                    <h2 class="text-2xl mb-4">Favorite Club</h2>
-                    <div id="favoriteClub"></div>
-                </div>
-                <div class="trophy-card">
-                    <h2 class="text-2xl mb-4">Trophy Cabinet</h2>
-                    <div id="trophyCabinet" class="max-h-[200px] overflow-y-auto"></div>
-                </div>
+            <div class="trophy-card">
+                <h2 class="text-2xl mb-4 text-center">Trophy Cabinet</h2>
+                <div id="trophyCabinet" class="max-h-[300px] overflow-y-auto"><p class="text-center">Loading trophies...</p></div>
             </div>
              <div class="title-card md:col-span-3">
-                <h2 class="text-2xl mb-4">Special Titles</h2>
-                <div id="specialTitles" class="max-h-96 overflow-y-auto"></div>
+                <h2 class="text-2xl mb-4 text-center">Special Titles</h2>
+                <div id="specialTitles" class="max-h-96 overflow-y-auto loading-placeholder"><p class="text-center">Analyzing performance...</p></div>
             </div>
         </div>
         
         <div class="stat-card">
-             <h2 class="text-2xl mb-4">Match History</h2>
-             <div id="matchHistory" class="max-h-96 overflow-y-auto"></div>
+             <h2 class="text-2xl mb-4 text-center">Match History</h2>
+             <div id="matchHistory" class="max-h-96 overflow-y-auto loading-placeholder"><p class="text-center">Loading matches...</p></div>
         </div>
     </div>
     
@@ -152,26 +99,6 @@
           measurementId: "G-QJCY28B9HM"
         };
         
-        // Club Theme Database
-        const clubThemes = {
-            'Real Madrid': { primary: '#FEBE10', secondary: '#00529F', text: '#FFFFFF', bg: '#FFFFFF' },
-            'FC Barcelona': { primary: '#A50044', secondary: '#004D98', text: '#FFFFFF', bg: '#004D98' },
-            'Manchester United': { primary: '#DA291C', secondary: '#FBE122', text: '#000000', bg: '#DA291C' },
-            'Liverpool FC': { primary: '#C8102E', secondary: '#00B2A9', text: '#FFFFFF', bg: '#C8102E' },
-            'Manchester City': { primary: '#6CABDD', secondary: '#FFFFFF', text: '#00285E', bg: '#6CABDD' },
-            'Arsenal FC': { primary: '#EF0107', secondary: '#FFFFFF', text: '#063672', bg: '#EF0107' },
-            'Chelsea FC': { primary: '#034694', secondary: '#FFFFFF', text: '#FFFFFF', bg: '#034694' },
-            'FC Bayern Munich': { primary: '#DC052D', secondary: '#FFFFFF', text: '#0066B2', bg: '#DC052D' },
-            'Juventus FC': { primary: '#FFFFFF', secondary: '#000000', text: '#000000', bg: '#FFFFFF' },
-            'AC Milan': { primary: '#FB090B', secondary: '#000000', text: '#FFFFFF', bg: '#FB090B' },
-            'Inter Milan': { primary: '#0068A8', secondary: '#FFFFFF', text: '#000000', bg: '#0068A8' },
-            'Paris Saint-Germain (PSG)': { primary: '#004170', secondary: '#DA291C', text: '#FFFFFF', bg: '#004170' },
-            'Tottenham Hotspur F.C.': { primary: '#132257', secondary: '#FFFFFF', text: '#FFFFFF', bg: '#132257' },
-            'Atlético de Madrid': { primary: '#CB3524', secondary: '#FFFFFF', text: '#272E61', bg: '#CB3524' },
-            'Borussia Dortmund': { primary: '#FDE100', secondary: '#000000', text: '#000000', bg: '#FDE100' },
-            'Newcastle United F.C.': { primary: '#241F20', secondary: '#FFFFFF', text: '#FFFFFF', bg: '#241F20' }
-        };
-
         const playerNameEl = document.getElementById('playerName');
         const playerEmailEl = document.getElementById('playerEmail');
         const playerAvatarEl = document.getElementById('playerAvatar');
@@ -180,16 +107,6 @@
         const specialTitlesEl = document.getElementById('specialTitles');
         const matchHistoryEl = document.getElementById('matchHistory');
         const favoriteClubEl = document.getElementById('favoriteClub');
-
-        function applyTheme(theme) {
-            const root = document.documentElement;
-            root.style.setProperty('--primary-color', theme.bg);
-            root.style.setProperty('--secondary-color', theme.secondary);
-            root.style.setProperty('--text-color', theme.text);
-            root.style.setProperty('--container-bg', theme.bg === '#FFFFFF' ? 'rgba(248, 249, 250, 0.85)' : `rgba(255,255,255,0.1)`);
-            root.style.setProperty('--card-bg', theme.bg === '#FFFFFF' ? 'rgba(255, 255, 255, 0.9)' : `rgba(0,0,0,0.1)`);
-            root.style.setProperty('--border-color', `rgba(${theme.text === '#FFFFFF' ? '255,255,255' : '0,0,0'}, 0.1)`);
-        }
 
         async function startApp() {
             const params = new URLSearchParams(window.location.search);
@@ -207,44 +124,58 @@
                 await signInAnonymously(auth); 
                 const db = getFirestore(app);
 
-                const playersSnapshot = await getDocs(collection(db, 'players'));
-                const matchesSnapshot = await getDocs(query(collection(db, 'matches'), where('status', '==', 'completed')));
+                // Quick initial render
+                const playersSnapshot = await getDocs(query(collection(db, 'players'), where('name', '==', playerName)));
+                let playerData = {};
+                if(!playersSnapshot.empty) {
+                    playerData = playersSnapshot.docs[0].data();
+                }
                 const honorsSnapshot = await getDocs(query(collection(db, 'honors'), where('playerName', '==', playerName)));
+                const honors = honorsSnapshot.docs.map(doc => doc.data());
+                
+                renderPrimaryInfo(playerData, honors);
+                
+                // Fetch heavier data async
+                const allPlayersSnapshot = await getDocs(collection(db, 'players'));
+                const matchesSnapshot = await getDocs(query(collection(db, 'matches'), where('status', '==', 'completed')));
                 const clubAssignmentsSnapshot = await getDocs(collection(db, 'clubAssignments'));
                 const clubsSnapshot = await getDocs(collection(db, 'clubs'));
 
-                const allPlayers = playersSnapshot.docs.map(doc => doc.data());
+                const allPlayers = allPlayersSnapshot.docs.map(doc => doc.data());
                 const allMatches = matchesSnapshot.docs.map(doc => doc.data());
-                const honors = honorsSnapshot.docs.map(doc => doc.data());
-                
-                const playerData = allPlayers.find(p => p.name === playerName);
                 const clubs = clubsSnapshot.docs.map(doc => doc.data());
                 const clubAssignments = {};
                 clubAssignmentsSnapshot.forEach(doc => { clubAssignments[doc.id] = doc.data() });
 
-                calculateAndRenderProfile(playerData, allPlayers, allMatches, honors, clubAssignments, clubs);
+                renderSecondaryInfo(playerData, allPlayers, allMatches, honors, clubAssignments, clubs);
 
             } catch (error) {
                 console.error("Error loading profile:", error);
                 playerNameEl.textContent = "Error loading profile";
             }
         }
-
-        function calculateAndRenderProfile(playerData, allPlayers, allMatches, honors, clubAssignments, allClubs) {
-            const playerName = playerData.name;
+        
+        function renderPrimaryInfo(playerData, honors) {
             playerEmailEl.textContent = playerData.email || '';
             if (playerData.avatarUrl) {
                 playerAvatarEl.src = playerData.avatarUrl;
             }
 
-            // Apply theme
-            const favoriteClubName = playerData.favoriteClub;
-            const theme = clubThemes[favoriteClubName];
-            if (theme) {
-                applyTheme(theme);
-            }
+            const awardIcons = {
+                'Gold Medal': '🥇', 'Silver Medal': '🥈', 'Bronze Medal': '🥉',
+                'Top Scorer': '⚽', 'Best Defender': '🛡️'
+            };
 
-            // Render favorite club
+            trophyCabinetEl.innerHTML = honors.sort((a,b) => b.timestamp - a.timestamp).map(honor => {
+                const date = honor.leagueDate ? new Date(honor.leagueDate).toLocaleDateString() : new Date(honor.timestamp).toLocaleDateString();
+                return `<div class="trophy"><span class="trophy-icon">${awardIcons[honor.award] || '🏆'}</span><div><p class="font-bold">${honor.award}</p><p class="text-sm opacity-70">${honor.leagueName} (${date})</p></div></div>`
+            }).join('') || '<p>No honors earned yet.</p>';
+        }
+
+        function renderSecondaryInfo(playerData, allPlayers, allMatches, allHonors, clubAssignments, allClubs) {
+            const playerName = playerData.name;
+
+            const favoriteClubName = playerData.favoriteClub;
             const favoriteClubData = allClubs.find(c => c.name === favoriteClubName);
             if (favoriteClubData) {
                 favoriteClubEl.innerHTML = `
@@ -252,7 +183,7 @@
                     <p class="font-bold">${favoriteClubData.name}</p>
                 `;
             } else {
-                 favoriteClubEl.innerHTML = `<p>No favorite club selected.</p>`;
+                 favoriteClubEl.innerHTML = `<p class="text-sm">No favorite club selected.</p>`;
             }
 
             const playerMatches = allMatches.filter(m => m.player1Name === playerName || m.player2Name === playerName);
@@ -312,30 +243,20 @@
                 <p class="col-span-2"><strong>Nemesis:</strong> ${nemesisName === 'None' ? 'None' : `${nemesisName} (${maxLosses} losses)`}</p>
                  <p class="col-span-2"><strong>Favorite Opponent:</strong> ${favoriteOpponent === 'None' ? 'None' : `${favoriteOpponent} (${maxWins} wins)`}</p>
             `;
+            careerStatsEl.classList.remove('loading-placeholder');
 
-            const awardIcons = {
-                'Gold Medal': '🥇', 'Silver Medal': '🥈', 'Bronze Medal': '🥉',
-                'Top Scorer': '⚽', 'Best Defender': '🛡️'
-            };
-
-            trophyCabinetEl.innerHTML = honors.sort((a,b) => b.timestamp - a.timestamp).map(honor => {
-                const date = honor.leagueDate ? new Date(honor.leagueDate).toLocaleDateString() : new Date(honor.timestamp).toLocaleDateString();
-                return `<div class="trophy"><span class="trophy-icon">${awardIcons[honor.award] || '🏆'}</span><div><p class="font-bold">${honor.award}</p><p class="text-sm opacity-70">${honor.leagueName} (${date})</p></div></div>`
-            }).join('') || '<p>No honors earned yet.</p>';
-            
-            // Calculate and Render Special Titles
-            renderSpecialTitles(playerName, allPlayers, allMatches, honors);
+            renderSpecialTitles(playerName, allPlayers, allMatches, allHonors);
             
             matchHistoryEl.innerHTML = playerMatches.sort((a,b) => b.timestamp - a.timestamp).map(m => {
                  const p1Club = clubAssignments[m.league]?.[m.player1Name] || '';
                  const p2Club = clubAssignments[m.league]?.[m.player2Name] || '';
                  return `<div class="match-item"><span>${m.league}: ${m.player1Name} ${p1Club ? `(${p1Club})` : ''} <b>${m.player1Goals}</b> - <b>${m.player2Goals}</b> ${m.player2Name} ${p2Club ? `(${p2Club})` : ''}</span></div>`
              }).join('') || '<p>No matches played.</p>';
+            matchHistoryEl.classList.remove('loading-placeholder');
         }
 
         function renderSpecialTitles(currentPlayerName, allPlayers, allMatches, allHonors) {
             let titlesHTML = '';
-            
             const playerStats = allPlayers.map(p => {
                 const pMatches = allMatches.filter(m => m.player1Name === p.name || m.player2Name === p.name);
                 let gf = 0, ga = 0, draws = 0, cleanSheets = 0;
@@ -379,9 +300,11 @@
             }
 
             specialTitlesEl.innerHTML = titlesHTML || '<p>No special titles earned yet.</p>';
+            specialTitlesEl.classList.remove('loading-placeholder');
         }
 
         document.addEventListener('DOMContentLoaded', startApp);
     </script>
 </body>
 </html>
+
