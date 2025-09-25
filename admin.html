@@ -248,17 +248,18 @@ const adminUIDs = [
                 auth = getAuth(app);
                 db = getFirestore(app);
                 
-                onAuthStateChanged(auth, user => {
-                    if (user && user.uid === adminUID) {
-                        userId = user.uid;
-                        loginSection.classList.add('hidden');
-                        adminControls.classList.remove('hidden');
-                        setupListeners();
-                    } else {
-                        loginSection.classList.remove('hidden');
-                        adminControls.classList.add('hidden');
-                    }
-                });
+onAuthStateChanged(auth, user => {
+    // Corrected Check: Does the user exist AND is their ID in the admin list?
+    if (user && adminUIDs.includes(user.uid)) { // <-- FIXED LINE
+        userId = user.uid;
+        loginSection.classList.add('hidden');
+        adminControls.classList.remove('hidden');
+        setupListeners();
+    } else {
+        loginSection.classList.remove('hidden');
+        adminControls.classList.add('hidden');
+    }
+});
             } catch (error) {
                 console.error("Firebase initialization error:", error);
                 loginError.textContent = "Initialization failed. Check console.";
