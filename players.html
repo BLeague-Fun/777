@@ -40,7 +40,7 @@
         }
         .stat-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(3, 1fr);
             gap: 1rem;
             margin-top: 1rem;
             border-top: 1px solid #e9ecef;
@@ -116,7 +116,7 @@
                 const goals = playerMatches.reduce((acc, m) => {
                     return acc + (m.player1Name === player.name ? m.player1Goals : m.player2Goals);
                 }, 0);
-                return { ...player, wins, goals };
+                return { ...player, wins, goals, played: playerMatches.length };
             });
 
             playerGrid.innerHTML = playerStats.sort((a,b) => a.name.localeCompare(b.name)).map(player => `
@@ -125,12 +125,16 @@
                     <h2 class="player-name">${player.name}</h2>
                     <div class="stat-grid">
                         <div>
+                            <p class="stat-value">${player.played}</p>
+                            <p class="stat-label">Played</p>
+                        </div>
+                        <div>
                             <p class="stat-value">${player.wins}</p>
-                            <p class="stat-label">Total Wins</p>
+                            <p class="stat-label">Wins</p>
                         </div>
                         <div>
                             <p class="stat-value">${player.goals}</p>
-                            <p class="stat-label">Total Goals</p>
+                            <p class="stat-label">Goals</p>
                         </div>
                     </div>
                 </a>
