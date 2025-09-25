@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Players - Fifa Leagues Master</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; color: #333; }
+        .container { max-width: 90%; margin: 2rem auto; padding: 2rem; background-color: rgba(255, 255, 255, 0.85); border-radius: 1rem; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1); }
+        h1 { color: #00b894; text-align: center; font-weight: 700; }
+        .player-card {
+            background-color: #fff;
+            border-radius: 0.75rem;
+            border: 1px solid #e9ecef;
+            padding: 1.5rem;
+            text-align: center;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            display: block;
+            text-decoration: none;
+            color: inherit;
+        }
+        .player-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+        }
+        .player-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #00b894;
+            margin: 0 auto 1rem;
+        }
+        .player-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #00b894;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+            border-top: 1px solid #e9ecef;
+            padding-top: 1rem;
+        }
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-4xl font-extrabold">All Players</h1>
+        <p class="text-center mt-2"><a href="index.html" class="text-green-500 hover:underline">← Back to Main Page</a></p>
+
+        <div id="playerGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-8">
+            <!-- Player cards will be populated here -->
+        </div>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBvXdFou9yUlERH-iaICi6JjNChw1rC2O0",
+          authDomain: "fun-league-6edd6.firebaseapp.com",
+          projectId: "fun-league-6edd6",
+          storageBucket: "fun-league-6edd6.appspot.com",
+          messagingSenderId: "132854098604",
+          appId: "1:132854098604:web:0c0e829ac99624dac38d09",
+          measurementId: "G-QJCY28B9HM"
+        };
+        
+        const playerGrid = document.getElementById('playerGrid');
+
+        async function startApp() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                await signInAnonymously(auth);
+                const db = getFirestore(app);
+
+                const playersSnapshot = await getDocs(collection(db, 'players'));
+                const matchesSnapshot = await getDocs(query(collection(db, 'matches'), where('status', '==', 'completed')));
+
+                const allPlayers = playersSnapshot.docs.map(doc => doc.data());
+                const allMatches = matchesSnapshot.docs.map(doc => doc.data());
+
+                renderPlayerCards(allPlayers, allMatches);
+
+            } catch (error) {
+                console.error("Error loading players:", error);
+                playerGrid.innerHTML = `<p class="text-red-500 col-span-full text-center">Error loading player data.</p>`;
+            }
+        }
+
+        function renderPlayerCards(players, matches) {
+            if (players.length === 0) {
+                playerGrid.innerHTML = '<p class="text-gray-500 col-span-full text-center">No players found.</p>';
+                return;
+            }
+
+            const playerStats = players.map(player => {
+                const playerMatches = matches.filter(m => m.player1Name === player.name || m.player2Name === player.name);
+                const wins = playerMatches.filter(m => (m.player1Name === player.name && m.player1Goals > m.player2Goals) || (m.player2Name === player.name && m.player2Goals > m.player1Goals)).length;
+                const goals = playerMatches.reduce((acc, m) => {
+                    return acc + (m.player1Name === player.name ? m.player1Goals : m.player2Goals);
+                }, 0);
+                return { ...player, wins, goals };
+            });
+
+            playerGrid.innerHTML = playerStats.sort((a,b) => a.name.localeCompare(b.name)).map(player => `
+                <a href="profile.html?player=${encodeURIComponent(player.name)}" class="player-card">
+                    <img src="${player.avatarUrl || 'https://placehold.co/100x100/e9ecef/495057?text=?'}" alt="${player.name}" class="player-avatar">
+                    <h2 class="player-name">${player.name}</h2>
+                    <div class="stat-grid">
+                        <div>
+                            <p class="stat-value">${player.wins}</p>
+                            <p class="stat-label">Total Wins</p>
+                        </div>
+                        <div>
+                            <p class="stat-value">${player.goals}</p>
+                            <p class="stat-label">Total Goals</p>
+                        </div>
+                    </div>
+                </a>
+            `).join('');
+        }
+
+        document.addEventListener('DOMContentLoaded', startApp);
+    </script>
+</body>
+</html>
